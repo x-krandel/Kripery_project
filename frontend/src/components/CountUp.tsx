@@ -3,15 +3,13 @@ import { useEffect, useRef, useState } from "react";
 /** Counts from 0 to `to` the first time it scrolls into view. */
 export function CountUp({ to, suffix = "", durationMs = 1600 }: { to: number; suffix?: string; durationMs?: number }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const [value, setValue] = useState(0);
+  // With reduced motion the final number is shown right away, no animation.
+  const [reduced] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const [value, setValue] = useState(() => (reduced ? to : 0));
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setValue(to);
-      return;
-    }
+    if (!el || reduced) return;
     let raf = 0;
     const obs = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) return;
@@ -26,7 +24,7 @@ export function CountUp({ to, suffix = "", durationMs = 1600 }: { to: number; su
     }, { threshold: 0.4 });
     obs.observe(el);
     return () => { obs.disconnect(); cancelAnimationFrame(raf); };
-  }, [to, durationMs]);
+  }, [to, durationMs, reduced]);
 
   const text = new Intl.NumberFormat("pl-PL", { useGrouping: "always" } as Intl.NumberFormatOptions).format(value);
   return <span ref={ref}>{text}{suffix}</span>;

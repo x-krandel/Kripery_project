@@ -40,7 +40,7 @@ docker compose exec backend python -m scripts.seed --reset    # 3 пользов
 curl -s "localhost:8000/api/artworks?ownerId=1" | python3 -c "import json,sys; [print(a['status'], a['title']) for a in json.load(sys.stdin)]"
 ```
 
-Если какая-то работа `held` (на картинках-заглушках портреты похожи на «Portret młodzieńca»), поднимите `LOSS_MATCH_THRESHOLD` в `.env` до 0.92–0.95, затем `docker compose up -d` и снова сид. Загрузка самого `lost-portrait.jpg` даёт сходство около 1.0, красный экран останется.
+Если какая-то работа `held` (на картинках-заглушках портреты похожи на «Portret młodzieńca»), поднимите `LOSS_MATCH_THRESHOLD` в `.env` выше её сходства (по умолчанию уже 0.95), затем `docker compose up -d` и снова сид. Загрузка самого `lost-portrait.jpg` даёт сходство около 1.0, красный экран останется.
 
 ## 3. Фронтенд
 

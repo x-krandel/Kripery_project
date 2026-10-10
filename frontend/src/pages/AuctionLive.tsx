@@ -5,7 +5,7 @@ import { ApiRequestError } from "../api/client";
 import { api } from "../api/endpoints";
 import { ArtworkFrame } from "../components/ArtworkFrame";
 import { ArrowLeft, LiveDot, ShieldCheck } from "../components/Icons";
-import { useToast } from "../components/Toast";
+import { useToast } from "../hooks/useToast";
 import { Avatar } from "../components/UserSwitcher";
 import { useAuctionSocket } from "../hooks/useAuctionSocket";
 import { useCurrentUser } from "../hooks/useCurrentUser";
