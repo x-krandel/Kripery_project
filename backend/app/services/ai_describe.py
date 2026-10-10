@@ -1,6 +1,7 @@
 import base64
 import json
 import logging
+import re
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -11,7 +12,9 @@ from pydantic import BaseModel, ValidationError
 from app.config import settings
 from app.schemas import AiDescriptionDto, ArtworkCategory
 
-TIMEOUT_SECONDS = 15
+TIMEOUT_SECONDS = 30
+# Generous: reasoning models (and Gemini 3) spend part of the budget on thinking before the JSON.
+MAX_TOKENS = 1500
 
 CATEGORIES = get_args(ArtworkCategory)
 
@@ -50,21 +53,7 @@ def to_dto(answer: LlmAnswer, raw: dict) -> AiDescriptionDto:
     )
 
 
-def _ask_llm(image_path: Path) -> dict:
-    image_b64 = base64.b64encode(image_path.read_bytes()).decode("ascii")
-    body = {
-        "model": settings.llm_model,
-        "messages": [{
-            "role": "user",
-            "content": [
-                {"type": "text", "text": PROMPT},
-                # Uploads are stored as JPEG (routers/uploads.py); "low" detail is enough and cheap.
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}", "detail": "low"}},
-            ],
-        }],
-        "response_format": {"type": "json_object"},
-        "max_completion_tokens": 400,
-    }
+def _post(body: dict) -> dict:
     req = urllib.request.Request(
         f"{settings.llm_base_url}/chat/completions",
         data=json.dumps(body).encode("utf-8"),
@@ -72,13 +61,60 @@ def _ask_llm(image_path: Path) -> dict:
         headers={
             "Content-Type": "application/json",
             "api-key": settings.llm_api_key,  # Azure OpenAI
-            "Authorization": f"Bearer {settings.llm_api_key}",  # OpenAI-compatible
+            "Authorization": f"Bearer {settings.llm_api_key}",  # OpenAI, Gemini and other OpenAI-compatible APIs
         },
     )
     with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
-        payload = json.loads(resp.read())
-    content = payload["choices"][0]["message"]["content"] or "{}"
-    return json.loads(content)
+        return json.loads(resp.read())
+
+
+def parse_json_answer(content: str | None) -> dict:
+    """The JSON object in a model answer, also when it comes wrapped in ```json fences or prose."""
+    text = (content or "").strip()
+    if not text:
+        return {}
+    try:
+        return json.loads(text)
+    except ValueError:
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if not match:
+            raise
+        return json.loads(match.group(0))
+
+
+def _ask_llm(image_path: Path) -> dict:
+    image_b64 = base64.b64encode(image_path.read_bytes()).decode("ascii")
+    image_url = f"data:image/jpeg;base64,{image_b64}"  # uploads are stored as JPEG (routers/uploads.py)
+    body = {
+        "model": settings.llm_model,
+        "messages": [{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": PROMPT},
+                # "low" detail is enough for cataloguing and cheap.
+                {"type": "image_url", "image_url": {"url": image_url, "detail": "low"}},
+            ],
+        }],
+        "response_format": {"type": "json_object"},
+        "max_completion_tokens": MAX_TOKENS,
+    }
+    try:
+        payload = _post(body)
+    except urllib.error.HTTPError as e:
+        if e.code != 400:
+            raise
+        # Some OpenAI-compatible providers reject newer fields (JSON mode, max_completion_tokens,
+        # image detail). Retry once with the plainest request; the prompt still asks for JSON only.
+        log.info("vision LLM rejected the request (%s), retrying without optional fields: %s", e.code, e.read()[:300])
+        payload = _post({
+            "model": settings.llm_model,
+            "messages": [{
+                "role": "user",
+                "content": [{"type": "text", "text": PROMPT}, {"type": "image_url", "image_url": {"url": image_url}}],
+            }],
+            "max_tokens": MAX_TOKENS,
+        })
+    return parse_json_answer(payload["choices"][0]["message"]["content"])
 
 
 def describe(image_path: Path) -> AiDescriptionDto:

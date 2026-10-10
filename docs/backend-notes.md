@@ -117,11 +117,23 @@ appears in seeded or future data; the loop moves it to `live` when due.
 
 ## 12. AI description
 
-`/api/ai/describe` calls Azure OpenAI (v1 endpoint, `POST {LLM_BASE_URL}/chat/completions`
-with the image as a data URL). `LLM_MODEL` is the deployment name. Without
-`LLM_API_KEY`, or on any provider error, it answers `502 AI_UNAVAILABLE`, and the
-frontend leaves the form empty for manual input. The prompt, timeout and
-response schema are in `app/services/ai_describe.py`.
+`/api/ai/describe` sends the photo to any OpenAI-compatible chat completions API
+(`POST {LLM_BASE_URL}/chat/completions`, image as a data URL). It sends both the
+`api-key` header (Azure) and `Authorization: Bearer` (everyone else). If the provider
+answers 400 to the optional fields (JSON mode, `max_completion_tokens`, image
+`detail`), the request is retried once without them, and the JSON is taken from the
+answer even when it is wrapped in ```json fences. Without `LLM_API_KEY`, or on any
+provider error, it answers `502 AI_UNAVAILABLE` and the form stays empty for manual
+input. The prompt and timeout are in `app/services/ai_describe.py`.
+
+| Provider | `LLM_BASE_URL` | `LLM_MODEL` |
+| --- | --- | --- |
+| Azure OpenAI | `https://<resource>.openai.azure.com/openai/v1` | deployment name |
+| OpenAI | `https://api.openai.com/v1` | e.g. `gpt-4o-mini` |
+| Google Gemini (AI Studio key) | `https://generativelanguage.googleapis.com/v1beta/openai` | a Gemini Flash model |
+
+Azure for Students subscriptions have no Azure OpenAI quota, so a deployment cannot
+be created there; use another provider from the table.
 
 ## 13. Duplicate registrations (new error code)
 
