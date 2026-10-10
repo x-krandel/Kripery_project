@@ -68,6 +68,10 @@ npm run dev            # http://localhost:5173
   Вернуть как было: тот же UPDATE с `replace(description, ' (zmienione)', '')` или `seed --reset`.
 - Аукционы из сида заканчиваются через 5, 30 и 120 минут. Перезапуск: `docker compose exec backend python -m scripts.seed --reset`.
 
+## Деплой
+
+Azure App Service: [DEPLOY.md](DEPLOY.md).
+
 ## Остановить
 
 ```bash

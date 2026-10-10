@@ -24,6 +24,10 @@
 
 Новые коды ошибок: `INVALID_USERNAME` (400), `WEAK_PASSWORD` (400), `USERNAME_TAKEN` (409), `INVALID_CREDENTIALS` (401). Детали: [backend-notes.md, раздел 15](backend-notes.md).
 
+## Дубликаты
+
+`POST /api/artworks` отвечает `409 ARTWORK_DUPLICATE`, если фото почти совпадает с уже зарегистрированной работой. Совпадение с базой потерь важнее: такая работа получает `held` и красный экран, а не 409. Детали: [backend-notes.md, раздел 13](backend-notes.md).
+
 Сверка после фриза:
 
 ```bash
