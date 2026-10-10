@@ -10,6 +10,8 @@ from app.config import settings
 engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,
+    # Managed servers and their load balancers drop idle connections.
+    pool_recycle=1800,
     connect_args={"options": "-c timezone=UTC"},
 )
 SessionLocal = sessionmaker(engine, expire_on_commit=False)

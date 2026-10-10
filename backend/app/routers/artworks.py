@@ -1,11 +1,11 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.config import settings
 from app.deps import CurrentUser, Db
-from app.errors import NOT_FOUND_ARTWORK, NOT_FOUND_UPLOAD, not_found, not_owner
+from app.errors import NOT_FOUND_ARTWORK, NOT_FOUND_UPLOAD, api_error, not_found, not_owner
 from app.models import Artwork, Upload
 from app.schemas import (
     ArtworkDetailDto,
@@ -22,6 +22,9 @@ from app.timeutil import utcnow
 router = APIRouter(tags=["artworks"])
 
 REGISTRATION_CLEAR = "Automatyczne porównanie z bazą strat wojennych MKiDN: brak dopasowań"
+# Serializes registrations so two uploads of the same picture cannot both pass
+# the duplicate check before either is committed.
+REGISTRATION_LOCK_KEY = 7_142_001
 REGISTRATION_MATCH = "Automatyczne porównanie z bazą strat wojennych MKiDN: możliwe dopasowanie, publikacja wstrzymana"
 
 
@@ -49,6 +52,9 @@ def create_artwork(db: Db, user: CurrentUser, req: CreateArtworkRequest):
         raise not_found(NOT_FOUND_UPLOAD)
 
     vec = embeddings.embed_image(settings.media_dir / upload.file_name)
+    db.execute(select(func.pg_advisory_xact_lock(REGISTRATION_LOCK_KEY)))
+    if loss_check.find_duplicate(db, vec) is not None:
+        raise api_error(409, "ARTWORK_DUPLICATE", "To dzieło jest już zarejestrowane w Rodowodzie")
     check = loss_check.check(db, vec)
     now = utcnow()
     artwork = Artwork(
