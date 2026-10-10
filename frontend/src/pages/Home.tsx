@@ -20,7 +20,8 @@ export function Home() {
     .filter((a) => a.auction?.status === "live")
     .sort((a, b) => new Date(a.auction!.endsAt).getTime() - new Date(b.auction!.endsAt).getTime())
     .slice(0, 3);
-  const hero = data?.find((a) => a.imageUrl.includes("landscape")) ?? data?.[0];
+  // Hero = a lot that is live right now, else any verified work.
+  const hero = live[0] ?? data?.find((a) => a.verified) ?? data?.[0];
 
   return (
     <main>
@@ -56,7 +57,7 @@ export function Home() {
               <span className="font-display text-[22px] italic">{hero?.title ?? "Pejzaż jesienny"}</span>
               <span className="text-[13px] text-muted">{hero ? `${hero.artist}, ${hero.dating}` : " "}</span>
             </div>
-            <VerifiedPill />
+            {hero?.verified && <VerifiedPill />}
           </figcaption>
         </figure>
       </section>
