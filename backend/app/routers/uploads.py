@@ -5,7 +5,7 @@ from fastapi import APIRouter, File, UploadFile
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from app.config import settings
-from app.deps import Db
+from app.deps import CurrentUser, Db
 from app.errors import api_error
 from app.models import Upload
 from app.schemas import UploadDto
@@ -28,7 +28,8 @@ def unsupported():
 
 
 @router.post("/uploads", response_model=UploadDto, status_code=201)
-def create_upload(db: Db, file: Annotated[UploadFile, File()]):
+def create_upload(db: Db, user: CurrentUser, file: Annotated[UploadFile, File()]):
+    # Login required (user is unused): anonymous uploads of 10 MB each could fill the disk.
     if file.size is not None and file.size > MAX_BYTES:
         raise too_large()
     read = 0
