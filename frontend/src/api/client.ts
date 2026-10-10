@@ -3,6 +3,8 @@
 // Runtime /env.js (production server) wins over the build-time VITE_API_URL.
 export const API_URL: string = (window.__RODOWOD__?.apiUrl || import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
 export const USE_MOCKS: boolean = import.meta.env.VITE_USE_MOCKS === "true";
+/** WebSocket close code from the backend when the auction does not exist (e.g. after seed --reset). */
+export const WS_CLOSE_NOT_FOUND = 4404;
 
 let authToken: string | null = null;
 

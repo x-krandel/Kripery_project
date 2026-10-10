@@ -2,7 +2,7 @@
 // Same demo data and the same rules as the backend stub, so switching to the real API
 // changes nothing on screen. Lets the frontend work before the backend is ready.
 
-import { ApiRequestError, getApiToken } from "./client";
+import { ApiRequestError, getApiToken, WS_CLOSE_NOT_FOUND } from "./client";
 import type {
   AiDescribeRequest, AiDescriptionDto, AuthResponse, LoginRequest, RegisterRequest, ArtworkCategory, ArtworkDetailDto, ArtworkSummaryDto,
   AuctionDetailDto, AuctionStatus, AuctionSummaryDto, AuctionWsMessage, BidDto, CreateArtworkRequest,
@@ -418,12 +418,15 @@ const mockApi: Api = {
 
   listLost: (limit = 50) => delay(lost.slice(0, limit)),
 
-  subscribeAuction(id: number, onMessage: AuctionListener): () => void {
+  subscribeAuction(id: number, onMessage: AuctionListener, onClose?: (code: number) => void): () => void {
     const set = listeners.get(id) ?? new Set<AuctionListener>();
     listeners.set(id, set);
     set.add(onMessage);
     const a = auctions.get(id);
-    const timer = setTimeout(() => a && onMessage(structuredClone({ type: "snapshot", auction: auctionDetail(a) } as const)), 150);
+    const timer = setTimeout(() => {
+      if (a) onMessage(structuredClone({ type: "snapshot", auction: auctionDetail(a) } as const));
+      else onClose?.(WS_CLOSE_NOT_FOUND);
+    }, 150);
     return () => {
       clearTimeout(timer);
       set.delete(onMessage);
