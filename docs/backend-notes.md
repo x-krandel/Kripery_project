@@ -140,6 +140,10 @@ registered artwork and refuses a near-identical one:
   different works.
 - Held artworks are not counted as registered, so the red-screen demo works
   for the same lost painting more than once.
+- The loss check runs first, and a loss match skips the duplicate check. With
+  real CLIP the seeded placeholder portraits score about 0.92 against the lost
+  portrait, so a photo of the lost portrait could also count as a duplicate of
+  a seeded work, and the other order answered 409 instead of the red screen.
 - Registrations are serialized with a transaction-level advisory lock, so two
   simultaneous uploads of the same picture cannot both pass the check.
 - `types.ts` needs no change (`ApiError.detail.code` is a string); the error

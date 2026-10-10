@@ -53,9 +53,11 @@ def create_artwork(db: Db, user: CurrentUser, req: CreateArtworkRequest):
 
     vec = embeddings.embed_image(settings.media_dir / upload.file_name)
     db.execute(select(func.pg_advisory_xact_lock(REGISTRATION_LOCK_KEY)))
-    if loss_check.find_duplicate(db, vec) is not None:
-        raise api_error(409, "ARTWORK_DUPLICATE", "To dzieło jest już zarejestrowane w Rodowodzie")
     check = loss_check.check(db, vec)
+    # A war-loss match wins over a duplicate: the red screen must show even when the
+    # photo also resembles a registered work (CLIP rates similar portraits ~0.92).
+    if check.result != "match" and loss_check.find_duplicate(db, vec) is not None:
+        raise api_error(409, "ARTWORK_DUPLICATE", "To dzieło jest już zarejestrowane w Rodowodzie")
     now = utcnow()
     artwork = Artwork(
         owner_id=user.id,
