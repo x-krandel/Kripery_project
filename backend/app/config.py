@@ -5,6 +5,12 @@ from pathlib import Path
 from sqlalchemy.engine import URL
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+# Azure App Service sets WEBSITE_SITE_NAME. Only /home survives restarts there; the
+# app itself may run from a temporary copy, so uploads and the CLIP cache go to /home.
+ON_APP_SERVICE = bool(os.getenv("WEBSITE_SITE_NAME"))
+if ON_APP_SERVICE:
+    os.environ.setdefault("HF_HOME", "/home/hfcache")
 
 
 @dataclass(frozen=True)
@@ -18,6 +24,7 @@ class Settings:
     llm_model: str
     loss_match_threshold: float
     duplicate_match_threshold: float
+    auto_seed: bool
 
 
 def _database_url() -> str:
@@ -45,11 +52,21 @@ def _database_url() -> str:
     ).render_as_string(hide_password=False)
 
 
+def _data_dir() -> Path:
+    """data/ sits next to backend/ in the repo; the deploy workflow copies it into backend/."""
+    if env := os.getenv("DATA_DIR"):
+        return Path(env).resolve()
+    for candidate in (REPO_ROOT / "data", BACKEND_ROOT / "data"):
+        if candidate.is_dir():
+            return candidate.resolve()
+    return (REPO_ROOT / "data").resolve()
+
+
 def _load() -> Settings:
     return Settings(
         database_url=_database_url(),
-        media_dir=Path(os.getenv("MEDIA_DIR", "./media")).resolve(),
-        data_dir=Path(os.getenv("DATA_DIR", str(REPO_ROOT / "data"))).resolve(),
+        media_dir=Path(os.getenv("MEDIA_DIR", "/home/media" if ON_APP_SERVICE else "./media")).resolve(),
+        data_dir=_data_dir(),
         cors_origins=[
             o.strip()
             for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
@@ -63,6 +80,7 @@ def _load() -> Settings:
         # 0.95: placeholder portraits score ~0.92 against the lost portrait; the lost image itself ~1.0.
         loss_match_threshold=float(os.getenv("LOSS_MATCH_THRESHOLD", "0.95")),
         duplicate_match_threshold=float(os.getenv("DUPLICATE_MATCH_THRESHOLD", "0.92")),
+        auto_seed=os.getenv("AUTO_SEED", "").lower() in ("1", "true", "yes"),
     )
 
 

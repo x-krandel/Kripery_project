@@ -1,8 +1,9 @@
 import { useContext } from "react";
-import { CurrentUserContext, type CurrentUserValue } from "./currentUserContext";
+import { AuthContext, type AuthValue } from "./authContext";
 
-export function useCurrentUser(): CurrentUserValue {
-  const v = useContext(CurrentUserContext);
-  if (!v) throw new Error("useCurrentUser must be used inside CurrentUserProvider");
+/** The logged-in user and the login / register / logout actions. */
+export function useCurrentUser(): AuthValue {
+  const v = useContext(AuthContext);
+  if (!v) throw new Error("useCurrentUser must be used inside AuthProvider");
   return v;
 }

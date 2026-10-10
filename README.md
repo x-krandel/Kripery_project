@@ -27,7 +27,7 @@ React (Vite, TS, Tailwind)  ──REST + WebSocket──▶  FastAPI  ──▶ 
 
 ## Uruchomienie
 
-Instrukcja krok po kroku: [docs/RUN.md](docs/RUN.md). Kontrakt API: [docs/contract.md](docs/contract.md), decyzje backendu: [docs/backend-notes.md](docs/backend-notes.md).
+Instrukcja krok po kroku: [docs/RUN.md](docs/RUN.md). Konta demo: `anna`, `piotr`, `ewa`, hasło `demo1234` (lub własne konto na `/rejestracja`). Wdrożenie na Azure: [docs/DEPLOY.md](docs/DEPLOY.md). Kontrakt API: [docs/contract.md](docs/contract.md), decyzje backendu: [docs/backend-notes.md](docs/backend-notes.md).
 
 ## Struktura
 

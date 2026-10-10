@@ -10,7 +10,7 @@ def format_pln(amount: int) -> str:
 
 
 def no_user() -> HTTPException:
-    return api_error(401, "NO_USER", "Wybierz użytkownika demo")
+    return api_error(401, "NO_USER", "Zaloguj się, aby kontynuować")
 
 
 NOT_FOUND_ARTWORK = "Nie znaleziono dzieła"

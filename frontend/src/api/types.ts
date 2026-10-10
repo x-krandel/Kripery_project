@@ -158,6 +158,22 @@ export interface PlaceBidRequest {
   amount: number;
 }
 
+// ===== auth =====
+export interface RegisterRequest {
+  username: string; // 3-32 chars: a-z 0-9 . _ -  (lower-cased by the server)
+  password: string; // at least 6 chars
+}
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string; // send as "Authorization: Bearer <token>"
+  user: UserDto;
+}
+
 // ===== WebSocket: server -> client only =====
 export type AuctionWsMessage =
   | { type: "snapshot"; auction: AuctionDetailDto }

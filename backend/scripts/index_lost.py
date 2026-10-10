@@ -16,17 +16,14 @@ from app.models import LostArtwork
 from app.services import embeddings
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--reset", action="store_true", help="clear lost_artworks first")
-    args = parser.parse_args()
-
+def index(reset: bool = False) -> tuple[int, int]:
+    """Embed data/lost rows into lost_artworks; returns (added, skipped)."""
     lost_dir = settings.data_dir / "lost"
     init_db()
     settings.media_dir.mkdir(parents=True, exist_ok=True)
 
     with SessionLocal() as db:
-        if args.reset:
+        if reset:
             db.execute(delete(LostArtwork))
             db.commit()
         known = set(db.scalars(select(LostArtwork.source_url)))
@@ -53,6 +50,14 @@ def main() -> None:
                     db.commit()
                     print(f"indexed {added}")
         db.commit()
+    return added, skipped
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--reset", action="store_true", help="clear lost_artworks first")
+    args = parser.parse_args()
+    added, skipped = index(reset=args.reset)
     print(f"done: {added} added, {skipped} skipped")
 
 

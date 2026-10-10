@@ -8,3 +8,8 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** Runtime settings from /env.js (see server.js). */
+interface Window {
+  __RODOWOD__?: { apiUrl?: string };
+}

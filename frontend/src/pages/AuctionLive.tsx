@@ -6,7 +6,7 @@ import { api } from "../api/endpoints";
 import { ArtworkFrame } from "../components/ArtworkFrame";
 import { ArrowLeft, LiveDot, ShieldCheck } from "../components/Icons";
 import { useToast } from "../hooks/useToast";
-import { Avatar } from "../components/UserSwitcher";
+import { Avatar } from "../components/Avatar";
 import { useAuctionSocket } from "../hooks/useAuctionSocket";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useNow } from "../hooks/useNow";
@@ -47,95 +47,126 @@ export function AuctionLive() {
   const youLead = auction?.leader?.id === userId;
   const urgent = auction ? secondsLeft(auction.endsAt, now) <= 30 : false;
 
+  const controls =
+    userId == null ? (
+      <Link to={`/logowanie?next=${encodeURIComponent(`/dziela/${id}/aukcja`)}`}
+        className="flex min-h-14 items-center justify-center rounded-full bg-accent text-lg font-bold text-white no-underline hover:bg-accent-dark">
+        Zaloguj się, aby licytować
+      </Link>
+    ) : isOwner ? (
+      <p className="m-0 py-3 text-center text-sm font-semibold text-ink-soft">To Twoja aukcja. Aby licytować, zaloguj się na inne konto.</p>
+    ) : (
+      <>
+        <div role="group" aria-label="Wysokość podbicia" className="grid grid-cols-3 gap-2">
+          {STEPS.map((s) => (
+            <button key={s} type="button" aria-pressed={step === s} onClick={() => setStep(s)}
+              className={`min-h-11 rounded-xl border text-[15px] font-bold ${step === s ? "border-ink bg-ink text-ground" : "border-line-strong bg-surface text-ink hover:border-ink"}`}>
+              +{formatPln(s)}
+            </button>
+          ))}
+        </div>
+        <button type="button" disabled={!auction || auction.status !== "live" || bid.isPending} onClick={() => bid.mutate(next)}
+          className="min-h-14 rounded-full bg-accent text-lg font-bold text-white transition-colors hover:bg-accent-dark disabled:opacity-50">
+          {bid.isPending ? "Wysyłam…" : `Licytuj ${formatPln(next)}`}
+        </button>
+      </>
+    );
+  const heading = (
+    <div className="flex flex-col gap-2 lg:gap-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-0.5 lg:gap-2">
+          <span className="hidden text-xs font-bold uppercase tracking-[0.12em] text-muted lg:block">Aukcja na żywo</span>
+          <span className="font-display text-[26px] leading-[1.1] lg:text-[44px] lg:font-medium lg:leading-[1.02]">{art?.title ?? "…"}</span>
+          <span className="text-[13px] text-muted lg:text-base lg:text-ink-soft">{art ? `${art.artist}, ${art.dating}` : ""}</span>
+        </div>
+        {art?.verified && (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-ok-tint px-2.5 py-1 text-xs font-bold text-ok lg:mt-6 lg:px-3 lg:py-1.5 lg:text-sm">
+            <ShieldCheck size={13} strokeWidth={2.25} /> Rodowód OK
+          </span>
+        )}
+      </div>
+      {art && <Link to={`/dziela/${id}`} className="hidden self-start text-[15px] font-semibold text-accent lg:inline">Zobacz paszport dzieła →</Link>}
+    </div>
+  );
+  const rule = <span className="text-center text-xs text-muted">Oferta w ostatnich 30 s przedłuża aukcję o 30 s</span>;
+
   return (
     <div className="min-h-screen bg-ground">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[430px] flex-col">
-        <div className="flex items-center gap-2 py-3 pl-1 pr-3">
-          <Link to={`/dziela/${id}`} aria-label="Wróć do dzieła" className="flex h-11 w-11 items-center justify-center text-ink"><ArrowLeft size={22} /></Link>
-          <span className="flex-1 text-base font-bold">Aukcja na żywo</span>
+      {/* Phones: one 430px column with the bid bar pinned to the bottom. Desktop (lg+): artwork left, auction panel right. */}
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[430px] flex-col lg:max-w-[1280px] lg:px-8">
+        <div className="flex items-center gap-2 py-3 pl-1 pr-3 lg:gap-4 lg:border-b lg:border-line lg:px-0 lg:py-[18px]">
+          <Link to="/" className="hidden font-display text-[32px] font-semibold italic leading-none text-ink no-underline lg:inline">Rodowód</Link>
+          <span className="hidden h-6 w-px bg-line-strong lg:block" aria-hidden="true" />
+          <Link to={`/dziela/${id}`} aria-label="Wróć do dzieła" className="flex h-11 w-11 items-center justify-center text-ink lg:w-auto lg:gap-2 lg:text-[15px] lg:font-medium lg:no-underline lg:hover:text-accent">
+            <ArrowLeft size={22} /><span className="hidden lg:inline">Wróć do dzieła</span>
+          </Link>
+          <span className="flex-1 text-base font-bold lg:hidden">Aukcja na żywo</span>
+          <span className="hidden flex-1 lg:block" />
           <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-bold tracking-[0.04em] ${connected ? "bg-alert-tint text-alert" : "bg-chip text-muted"}`}>
             {connected ? <><LiveDot /> NA ŻYWO</> : "ŁĄCZENIE…"}
           </span>
         </div>
 
-        <div className="flex flex-1 flex-col gap-3.5 px-4 pb-4">
-          {art && <ArtworkFrame src={art.imageUrl} alt={art.title} mat="sm" imgClassName="h-[196px]" />}
+        <div className="flex flex-1 flex-col gap-3.5 px-4 pb-4 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(380px,1fr)] lg:items-start lg:gap-14 lg:px-0 lg:pb-16 lg:pt-10">
+          <section className="flex flex-col gap-3.5 lg:gap-6">
+            {art && <ArtworkFrame src={art.imageUrl} alt={art.title} mat="sm" shadow className="lg:p-6" imgClassName="h-[196px] lg:h-[min(68vh,640px)]" />}
+            <div className="lg:hidden">{heading}</div>
+          </section>
 
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <span className="font-display text-[26px] leading-[1.1]">{art?.title ?? "…"}</span>
-              <span className="text-[13px] text-muted">{art ? `${art.artist}, ${art.dating}` : ""}</span>
+          <section className="flex flex-col gap-3.5 lg:sticky lg:top-8 lg:gap-5">
+            <div className="hidden lg:block">{heading}</div>
+            <div className="flex items-center justify-between gap-3 rounded-[18px] border border-line bg-surface px-4.5 py-4 lg:rounded-3xl lg:px-7 lg:py-6">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs text-muted lg:text-sm">{auction && auction.bidCount > 0 ? "Aktualna oferta" : "Cena wywoławcza"}</span>
+                <span key={auction?.currentPrice} aria-live="polite" className="animate-bump text-[34px] font-bold leading-[1.1] tracking-[-0.01em] lg:text-[44px]">
+                  {auction ? formatPln(auction.currentPrice) : "—"}
+                </span>
+                {youLead ? (
+                  <span className="mt-1 self-start rounded-full bg-ok-tint px-2.5 py-0.5 text-xs font-bold text-ok">Prowadzisz</span>
+                ) : auction?.leader ? (
+                  <span className="text-[13px] text-ink-soft lg:text-[15px]">Prowadzi: {auction.leader.name}</span>
+                ) : null}
+              </div>
+              <div className="flex flex-col items-end gap-0.5">
+                <span className="text-xs text-muted lg:text-sm">Koniec za</span>
+                <span className={`font-mono text-[28px] font-medium leading-[1.1] lg:text-[36px] ${urgent ? "text-alert" : "text-accent"}`}>
+                  {auction ? formatCountdown(auction.endsAt, now) : "--:--"}
+                </span>
+              </div>
             </div>
-            {art?.verified && (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-ok-tint px-2.5 py-1 text-xs font-bold text-ok">
-                <ShieldCheck size={13} strokeWidth={2.25} /> Rodowód OK
-              </span>
-            )}
-          </div>
 
-          <div className="flex items-center justify-between gap-3 rounded-[18px] border border-line bg-surface px-4.5 py-4">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs text-muted">{auction && auction.bidCount > 0 ? "Aktualna oferta" : "Cena wywoławcza"}</span>
-              <span key={auction?.currentPrice} aria-live="polite" className="animate-bump text-[34px] font-bold leading-[1.1] tracking-[-0.01em]">
-                {auction ? formatPln(auction.currentPrice) : "—"}
-              </span>
-              {youLead ? (
-                <span className="mt-1 self-start rounded-full bg-ok-tint px-2.5 py-0.5 text-xs font-bold text-ok">Prowadzisz</span>
-              ) : auction?.leader ? (
-                <span className="text-[13px] text-ink-soft">Prowadzi: {auction.leader.name}</span>
-              ) : null}
+            <div className="hidden flex-col gap-3 rounded-3xl border border-line bg-surface p-6 lg:flex">
+              {controls}
+              {rule}
             </div>
-            <div className="flex flex-col items-end gap-0.5">
-              <span className="text-xs text-muted">Koniec za</span>
-              <span className={`font-mono text-[28px] font-medium leading-[1.1] ${urgent ? "text-alert" : "text-accent"}`}>
-                {auction ? formatCountdown(auction.endsAt, now) : "--:--"}
-              </span>
-            </div>
-          </div>
 
-          <div className="flex flex-col">
-            <span className="pb-1.5 text-xs font-bold uppercase tracking-[0.08em] text-muted">Ostatnie oferty</span>
-            <ul className="m-0 list-none p-0">
-              {(auction?.bids ?? []).slice(0, 4).map((b) => (
-                <li key={b.id} className="flex min-h-10 items-center justify-between border-b border-line text-sm">
-                  <span className="flex items-center gap-2.5">
-                    <Avatar id={b.user.id} name={b.user.name} size={26} />
-                    <span className="font-semibold">{b.user.id === userId ? "Ty" : b.user.name}</span>
-                    <span className="text-[13px] text-muted">{timeAgo(b.createdAt, now)}</span>
-                  </span>
-                  <span className="font-bold">{formatPln(b.amount)}</span>
-                </li>
-              ))}
-              {auction && auction.bids.length === 0 && <li className="py-3 text-sm text-muted">Jeszcze nikt nie licytował. Bądź pierwszy!</li>}
-            </ul>
-          </div>
+            <div className="flex flex-col lg:rounded-3xl lg:border lg:border-line lg:bg-surface lg:px-7 lg:py-5">
+              <span className="pb-1.5 text-xs font-bold uppercase tracking-[0.08em] text-muted">Ostatnie oferty</span>
+              <ul className="m-0 list-none p-0">
+                {(auction?.bids ?? []).slice(0, 8).map((b, i) => (
+                  <li key={b.id} className={`flex min-h-10 items-center justify-between border-b border-line text-sm last:border-b-0 lg:min-h-12 lg:text-[15px] ${i >= 4 ? "max-lg:hidden" : ""}`}>
+                    <span className="flex items-center gap-2.5">
+                      <Avatar id={b.user.id} name={b.user.name} size={26} />
+                      <span className="font-semibold">{b.user.id === userId ? "Ty" : b.user.name}</span>
+                      <span className="text-[13px] text-muted">{timeAgo(b.createdAt, now)}</span>
+                    </span>
+                    <span className="font-bold">{formatPln(b.amount)}</span>
+                  </li>
+                ))}
+                {auction && auction.bids.length === 0 && <li className="py-3 text-sm text-muted">Jeszcze nikt nie licytował. Bądź pierwszy!</li>}
+              </ul>
+            </div>
+          </section>
         </div>
 
-        <div className="sticky bottom-0 flex flex-col gap-3 border-t border-line bg-surface px-4 pb-6 pt-3.5">
-          {isOwner ? (
-            <p className="m-0 py-3 text-center text-sm font-semibold text-ink-soft">To Twoja aukcja. {user?.name}, zmień użytkownika, aby licytować.</p>
-          ) : (
-            <>
-              <div role="group" aria-label="Wysokość podbicia" className="grid grid-cols-3 gap-2">
-                {STEPS.map((s) => (
-                  <button key={s} type="button" aria-pressed={step === s} onClick={() => setStep(s)}
-                    className={`min-h-11 rounded-xl border text-[15px] font-bold ${step === s ? "border-ink bg-ink text-ground" : "border-line-strong bg-surface text-ink"}`}>
-                    +{formatPln(s)}
-                  </button>
-                ))}
-              </div>
-              <button type="button" disabled={!auction || auction.status !== "live" || bid.isPending} onClick={() => bid.mutate(next)}
-                className="min-h-14 rounded-full bg-accent text-lg font-bold text-white transition-colors hover:bg-accent-dark disabled:opacity-50">
-                {bid.isPending ? "Wysyłam…" : `Licytuj ${formatPln(next)}`}
-              </button>
-            </>
-          )}
-          <span className="text-center text-xs text-muted">Oferta w ostatnich 30 s przedłuża aukcję o 30 s</span>
+        <div className="sticky bottom-0 flex flex-col gap-3 border-t border-line bg-surface px-4 pb-6 pt-3.5 lg:hidden">
+          {controls}
+          {rule}
         </div>
 
         {ended && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-ink/55 p-6">
-            <div className="flex w-full flex-col gap-4 rounded-3xl bg-surface p-7 text-center">
+          <div className="fixed inset-0 z-30 flex items-center justify-center bg-ink/55 p-6">
+            <div className="flex w-full max-w-[440px] flex-col gap-4 rounded-3xl bg-surface p-7 text-center">
               {ended.winner?.id === userId ? (
                 <>
                   <span className="font-display text-4xl font-semibold leading-none text-accent">{user?.name.endsWith("a") ? "Wygrałaś!" : "Wygrałeś!"}</span>

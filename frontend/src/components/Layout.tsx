@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { Plus } from "./Icons";
-import { UserSwitcher } from "./UserSwitcher";
+import { UserMenu } from "./UserMenu";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `no-underline transition-colors hover:text-accent ${isActive ? "text-accent underline underline-offset-[6px]" : "text-ink"}`;
@@ -25,7 +25,7 @@ export function Header() {
           <Link to="/#jak-to-dziala" className="text-ink no-underline hover:text-accent">Jak to działa</Link>
         </nav>
         <div className="flex items-center gap-3">
-          <UserSwitcher />
+          <UserMenu />
           <Link to="/dodaj" className="btn-dark">
             <Plus size={16} /> <span className="hidden sm:inline">Dodaj dzieło</span><span className="sm:hidden">Dodaj</span>
           </Link>

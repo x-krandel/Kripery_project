@@ -10,8 +10,8 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.db import init_db
-from app.routers import ai, artworks, auctions, lost, uploads, users
-from app.services import auction_engine, embeddings
+from app.routers import ai, artworks, auctions, auth, lost, uploads, users
+from app.services import auction_engine, bootstrap, embeddings
 
 logging.basicConfig(level=logging.INFO)
 
@@ -21,10 +21,19 @@ async def lifespan(app: FastAPI):
     await run_in_threadpool(init_db)
     await run_in_threadpool(embeddings.load_model)
     loop_task = asyncio.create_task(auction_engine.run_loop())
+    if settings.auto_seed:
+        boot_task = asyncio.create_task(_bootstrap())  # noqa: F841 — keep a reference while running
     yield
     loop_task.cancel()
     with contextlib.suppress(asyncio.CancelledError):
         await loop_task
+
+
+async def _bootstrap() -> None:
+    try:
+        await run_in_threadpool(bootstrap.run)
+    except Exception:  # a failed seed must not take the API down
+        logging.getLogger("rodowod.bootstrap").exception("AUTO_SEED failed")
 
 
 app = FastAPI(title="Rodowód API", lifespan=lifespan)
@@ -44,7 +53,7 @@ def health():
     return {"ok": True}
 
 
-for module in (users, uploads, ai, artworks, auctions, lost):
+for module in (auth, users, uploads, ai, artworks, auctions, lost):
     api.include_router(module.router)
 app.include_router(api)
 

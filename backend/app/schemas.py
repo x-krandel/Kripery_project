@@ -201,3 +201,19 @@ class ApiErrorDetail(CamelModel):
 
 class ApiError(CamelModel):
     detail: ApiErrorDetail
+
+
+# ===== auth =====
+class RegisterRequest(CamelModel):
+    username: str
+    password: str
+
+
+class LoginRequest(CamelModel):
+    username: str
+    password: str
+
+
+class AuthResponse(CamelModel):
+    token: str
+    user: UserDto

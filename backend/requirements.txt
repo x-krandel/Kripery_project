@@ -1,3 +1,6 @@
+# CPU-only torch (pulled by sentence-transformers): the default Linux wheel adds gigabytes of CUDA.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
 fastapi==0.118.0
 uvicorn[standard]==0.37.0
 sqlalchemy==2.0.43

@@ -1,9 +1,11 @@
 import { useEffect } from "react";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { RequireAuth } from "./components/RequireAuth";
 import { AddArtwork } from "./pages/AddArtwork";
 import { ArtworkPage } from "./pages/ArtworkPage";
 import { AuctionLive } from "./pages/AuctionLive";
+import { Login, Register } from "./pages/Auth";
 import { Catalog } from "./pages/Catalog";
 import { CollectionPage, Collections } from "./pages/Collections";
 import { Home } from "./pages/Home";
@@ -44,7 +46,9 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/aukcje" element={<Catalog />} />
           <Route path="/dziela/:id" element={<ArtworkPage />} />
-          <Route path="/dodaj" element={<AddArtwork />} />
+          <Route path="/dodaj" element={<RequireAuth><AddArtwork /></RequireAuth>} />
+          <Route path="/logowanie" element={<Login />} />
+          <Route path="/rejestracja" element={<Register />} />
           <Route path="/szukamy" element={<Lost />} />
           <Route path="/kolekcje" element={<Collections />} />
           <Route path="/kolekcje/:userId" element={<CollectionPage />} />
