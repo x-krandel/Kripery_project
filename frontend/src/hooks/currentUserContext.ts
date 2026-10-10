@@ -16,6 +16,8 @@ export function readStoredId(): number {
 
 export interface CurrentUserValue {
   users: UserDto[];
+  /** true once /users answered (it may be empty when the backend is not seeded yet). */
+  usersLoaded: boolean;
   user: UserDto | null;
   userId: number;
   setUserId: (id: number) => void;

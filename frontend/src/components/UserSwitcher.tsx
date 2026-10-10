@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { roleLabel } from "../lib/labels";
-import { Check, ChevronDown } from "./Icons";
+import { Check, ChevronDown, ShieldAlert } from "./Icons";
 
 const AVATAR: Record<number, string> = { 1: "bg-accent", 2: "bg-[#2F4A3A]", 3: "bg-brass" };
 
@@ -16,7 +16,7 @@ export function Avatar({ id, name, size = 34 }: { id: number; name: string; size
 
 /** Demo login: pick one of the three seeded users; stored in localStorage and sent as X-User-Id. */
 export function UserSwitcher() {
-  const { users, user, setUserId } = useCurrentUser();
+  const { users, usersLoaded, user, setUserId } = useCurrentUser();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -28,6 +28,16 @@ export function UserSwitcher() {
     document.addEventListener("keydown", onKey);
     return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
   }, [open]);
+
+  if (usersLoaded && users.length === 0) {
+    // Backend answered with no users: the database was not seeded, every write would get 401 NO_USER.
+    return (
+      <span role="status" title="docker compose exec backend python -m scripts.seed --reset"
+        className="inline-flex min-h-11 items-center gap-2 rounded-full bg-alert-tint px-4 text-sm font-semibold text-alert">
+        <ShieldAlert size={16} /> Brak użytkowników demo — uruchom seed
+      </span>
+    );
+  }
 
   return (
     <div ref={ref} className="relative">
