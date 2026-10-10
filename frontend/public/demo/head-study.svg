@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="800" height="1000">
+<rect width="400" height="500" fill="#EFE8DA"/>
+<g fill="none" stroke="#4A4743" stroke-linecap="round">
+<path d="M200 110 C140 112 120 170 128 230 C134 285 165 330 205 335 C245 330 272 285 276 228 C282 165 258 110 200 110Z" stroke-width="3" opacity="0.85"/>
+<path d="M196 106 C150 104 118 150 124 215" stroke-width="1.5" opacity="0.5"/>
+<path d="M150 200 C165 192 180 192 190 200 M215 200 C226 192 242 192 255 200" stroke-width="2.5"/>
+<path d="M200 215 C196 245 192 262 200 272 C206 276 214 272 214 266" stroke-width="2"/>
+<path d="M178 298 C195 306 212 306 228 296" stroke-width="2.5"/>
+<path d="M128 170 C150 120 230 95 270 150 C285 175 282 205 276 228" stroke-width="5" opacity="0.6"/>
+<path d="M135 160 C170 135 240 128 268 165" stroke-width="2" opacity="0.5"/>
+<path d="M205 335 C200 370 190 395 170 420 M232 326 C238 360 252 392 280 418" stroke-width="2.5" opacity="0.8"/>
+<path d="M110 440 C160 420 250 418 300 442" stroke-width="2" opacity="0.6"/>
+</g>
+<g stroke="#8A857C" stroke-width="1" opacity="0.55">
+<path d="M262 210 L284 240 M258 230 L280 262 M254 252 L274 282 M248 270 L266 300"/>
+<path d="M140 240 L150 268 M138 220 L146 250"/>
+</g>
+<text x="300" y="470" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#6B655C">st. 1900</text>
+</svg>

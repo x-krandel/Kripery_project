@@ -5,7 +5,7 @@ import { api } from "../api/endpoints";
 import type { NewPassportEventRequest } from "../api/types";
 import { EVENT_LABEL } from "../lib/labels";
 import { Modal } from "./Modal";
-import { useToast } from "./Toast";
+import { useToast } from "../hooks/useToast";
 
 type EventType = NewPassportEventRequest["type"];
 const TYPES: EventType[] = ["exhibition", "conservation", "creation"];

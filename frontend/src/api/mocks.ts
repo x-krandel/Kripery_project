@@ -64,7 +64,7 @@ const users: UserDto[] = [
   { id: 3, name: "Ewa", role: "buyer" },
 ];
 const lost: LostArtworkDto[] = [
-  { id: 1, title: "Portret młodzieńca", artist: "Rafael Santi", sourceUrl: "https://dzielautracone.gov.pl", imageUrl: "/demo/lost-portrait.svg" },
+  { id: 1, title: "Portret młodzieńca", artist: "Rafael Santi", sourceUrl: "https://dzielautracone.gov.pl/artykuly/100-portret-mlodzienca-losy-zaginionego-obrazu", imageUrl: "/demo/lost-portrait.svg" },
 ];
 const artworks = new Map<number, MArtwork>();
 const events: MEvent[] = [];
@@ -104,13 +104,13 @@ function seed(): void {
       "Pamiątka rodzinna, przez lata wisiała w dworku pod Kaliszem."],
     ["Martwa natura z dzbanem", "Malarz nieznany", "XIX w.", "olej na płótnie", "painting", "46 × 38 cm", "still",
       "Obraz z kolekcji dziadka, sygnatura nieczytelna."],
-    ["Kamienice przy rynku", "Szkoła polska", "ok. 1925", "gwasz na papierze", "works_on_paper", "30 × 42 cm", "city",
+    ["Kamienice przy rynku", "Szkoła polska", "ok. 1925", "gwasz na papierze", "works_on_paper", "30 × 42 cm", "townhouses",
       "Gwasz kupiony w antykwariacie w Krakowie w 2004 roku."],
-    ["Studium głowy kobiety", "Krąg akademicki", "ok. 1900", "węgiel na papierze", "works_on_paper", "48 × 36 cm", "portrait",
+    ["Studium głowy kobiety", "Krąg akademicki", "ok. 1900", "węgiel na papierze", "works_on_paper", "48 × 36 cm", "head-study",
       "Rysunek z teki studenckiej, przechowywany w passe-partout."],
-    ["Owoce na cynowym talerzu", "Malarz nieznany", "ok. 1870", "olej na płótnie", "painting", "40 × 50 cm", "still",
+    ["Owoce na cynowym talerzu", "Malarz nieznany", "ok. 1870", "olej na płótnie", "painting", "40 × 50 cm", "fruit-plate",
       "Obraz odziedziczony po ciotce z Lwowa."],
-    ["Łąka przed burzą", "Szkoła polska", "ok. 1905", "olej na tekturze", "painting", "33 × 41 cm", "landscape",
+    ["Łąka przed burzą", "Szkoła polska", "ok. 1905", "olej na tekturze", "painting", "33 × 41 cm", "storm-meadow",
       "Mały format, malowany prawdopodobnie w plenerze."],
   ];
   for (const [title, artist, dating, technique, category, dimensions, image, story] of works) {

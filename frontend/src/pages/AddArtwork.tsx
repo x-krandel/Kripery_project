@@ -10,7 +10,7 @@ import { Search, Sparkle, Upload } from "../components/Icons";
 import { LossAlert } from "../components/LossAlert";
 import { Skeleton } from "../components/Skeleton";
 import { StepIndicator } from "../components/StepIndicator";
-import { useToast } from "../components/Toast";
+import { useToast } from "../hooks/useToast";
 import { plural } from "../lib/format";
 import { CATEGORY_LABEL } from "../lib/labels";
 

@@ -12,7 +12,7 @@ import { Modal } from "../components/Modal";
 import { PassportTimeline } from "../components/PassportTimeline";
 import { QrBlock } from "../components/QrBlock";
 import { Skeleton } from "../components/Skeleton";
-import { useToast } from "../components/Toast";
+import { useToast } from "../hooks/useToast";
 import { useAuctionSocket } from "../hooks/useAuctionSocket";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useNow } from "../hooks/useNow";
