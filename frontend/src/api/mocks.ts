@@ -223,19 +223,29 @@ function emit(auctionId: number, msg: AuctionWsMessage): void {
   listeners.get(auctionId)?.forEach((l) => l(structuredClone(msg)));
 }
 
-function requireUser(): UserDto {
-  // Mock tokens are "mock-<userId>", so a login survives a page reload (mock state is rebuilt on load).
+/** Logged-in user id or null. Mock tokens are "mock-<userId>", so a login survives a page reload. */
+function currentUserId(): number | null {
   const token = getApiToken();
-  const id = token?.startsWith("mock-") ? Number(token.slice(5)) : undefined;
-  const u = id == null ? undefined : users.find((x) => x.id === id);
-  return u ?? fail(401, "NO_USER", "Zaloguj się, aby kontynuować");
+  const id = token?.startsWith("mock-") ? Number(token.slice(5)) : NaN;
+  return users.some((x) => x.id === id) ? id : null;
+}
+
+function requireUser(): UserDto {
+  const id = currentUserId();
+  return id == null ? fail(401, "NO_USER", "Zaloguj się, aby kontynuować") : userById(id);
+}
+
+/** Same rule as the backend: a held artwork (possible war-loss match) exists only for its owner. */
+function isVisible(a: MArtwork): boolean {
+  return a.status !== "held" || a.ownerId === currentUserId();
 }
 
 function issue(userId: number): AuthResponse {
   return { token: `mock-${userId}`, user: userById(userId) };
 }
 function getArtworkOr404(id: number): MArtwork {
-  return artworks.get(id) ?? fail(404, "NOT_FOUND", "Nie znaleziono dzieła.");
+  const a = artworks.get(id);
+  return a && isVisible(a) ? a : fail(404, "NOT_FOUND", "Nie znaleziono dzieła.");
 }
 
 function placeBidSync(auctionId: number, userId: number, amount: number): BidDto {
@@ -318,6 +328,7 @@ const mockApi: Api = {
   listUsers: () => delay(users),
 
   async upload(file: File): Promise<UploadDto> {
+    requireUser();
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) fail(415, "UNSUPPORTED_FILE", "Dozwolone są pliki JPG, PNG lub WebP.");
     if (file.size > 10 * 1024 * 1024) fail(413, "FILE_TOO_LARGE", "Plik jest większy niż 10 MB.");
     const uploadId = crypto.randomUUID();
@@ -327,6 +338,7 @@ const mockApi: Api = {
   },
 
   async describe(req: AiDescribeRequest): Promise<AiDescriptionDto> {
+    requireUser();
     if (!uploads.has(req.uploadId)) fail(404, "NOT_FOUND", "Nie znaleziono zdjęcia.");
     return delay<AiDescriptionDto>({
       title: "Portret damy w czerni", artist: "Szkoła polska", dating: "ok. 1895", technique: "olej na płótnie",
@@ -336,7 +348,8 @@ const mockApi: Api = {
   },
 
   listArtworks: (ownerId?: number) => {
-    const items = [...artworks.values()].filter((a) => (ownerId == null ? a.status === "published" : a.ownerId === ownerId));
+    const mine = ownerId != null && ownerId === currentUserId();
+    const items = [...artworks.values()].filter((a) => (ownerId == null || a.ownerId === ownerId) && (mine || a.status === "published"));
     return delay(items.map(artworkSummary));
   },
 
