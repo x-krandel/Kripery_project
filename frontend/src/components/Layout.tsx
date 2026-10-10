@@ -20,8 +20,8 @@ export function Header() {
         <Logo />
         <nav aria-label="Główna nawigacja" className="order-3 flex w-full flex-wrap gap-x-7 gap-y-2 text-[15px] font-medium sm:order-none sm:w-auto">
           <NavLink to="/aukcje" className={navClass}>Aukcje</NavLink>
-          <NavLink to="/aukcje?widok=kolekcje" className={() => navClass({ isActive: false })}>Kolekcje</NavLink>
-          <Link to="/#szukamy" className="text-ink no-underline hover:text-accent">Szukamy</Link>
+          <NavLink to="/kolekcje" className={navClass}>Kolekcje</NavLink>
+          <NavLink to="/szukamy" className={navClass}>Szukamy</NavLink>
           <Link to="/#jak-to-dziala" className="text-ink no-underline hover:text-accent">Jak to działa</Link>
         </nav>
         <div className="flex items-center gap-3">

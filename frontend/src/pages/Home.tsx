@@ -73,10 +73,10 @@ export function Home() {
               dzieł figuruje w polskiej bazie strat wojennych. Część z nich może dziś trafić na rynek, dlatego każde nowe dzieło na Rodowodzie porównujemy z tą bazą.
             </p>
             <div className="flex flex-wrap items-center gap-6">
-              <a href="https://dzielautracone.gov.pl" target="_blank" rel="noreferrer"
+              <Link to="/szukamy"
                 className="inline-flex min-h-11 items-center gap-2 text-base font-semibold text-[#E8C9A2] no-underline hover:text-white">
                 Przeglądaj zaginione dzieła <ArrowRight />
-              </a>
+              </Link>
               <span className="text-[13px] text-[#B5AC9C]">Źródło: baza strat wojennych MKiDN, dzielautracone.gov.pl</span>
             </div>
           </div>

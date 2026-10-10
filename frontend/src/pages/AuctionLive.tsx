@@ -26,7 +26,7 @@ export function AuctionLive() {
   const artQ = useQuery({ queryKey: ["artwork", id], queryFn: () => api.getArtwork(id) });
   const art = artQ.data;
   const auctionId = art?.auction?.id ?? null;
-  const { auction, ended, connected } = useAuctionSocket(auctionId);
+  const { auction, ended, connected, resync } = useAuctionSocket(auctionId);
 
   useEffect(() => {
     if (ended) void qc.invalidateQueries();
@@ -35,7 +35,10 @@ export function AuctionLive() {
   const bid = useMutation({
     mutationFn: (amount: number) => api.placeBid(auctionId!, { amount }),
     onSuccess: (b) => toast(`Oferta przyjęta: ${formatPln(b.amount)}`),
-    onError: (e) => toast(e instanceof ApiRequestError ? e.message : "Nie udało się złożyć oferty.", "error"),
+    onError: (e) => {
+      toast(e instanceof ApiRequestError ? e.message : "Nie udało się złożyć oferty.", "error");
+      if (e instanceof ApiRequestError && e.code === "BID_TOO_LOW") resync(); // someone was faster: fetch a fresh snapshot
+    },
   });
 
   const isOwner = art?.ownerId === userId;

@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { AddEventModal } from "../components/AddEventModal";
 import { ApiRequestError } from "../api/client";
 import { api } from "../api/endpoints";
 import type { ArtworkDetailDto } from "../api/types";
 import { ArtworkFrame } from "../components/ArtworkFrame";
 import { ChainPanel, IntegrityBadge, LossCheckBadge } from "../components/Badges";
-import { ShieldAlert } from "../components/Icons";
+import { Plus, ShieldAlert } from "../components/Icons";
 import { Modal } from "../components/Modal";
 import { PassportTimeline } from "../components/PassportTimeline";
 import { QrBlock } from "../components/QrBlock";
@@ -20,8 +21,14 @@ import { roleLabel } from "../lib/labels";
 
 export function ArtworkPage() {
   const id = Number(useParams().id);
+  const [params, setParams] = useSearchParams();
+  const { userId } = useCurrentUser();
   const artworkQ = useQuery({ queryKey: ["artwork", id], queryFn: () => api.getArtwork(id) });
   const passportQ = useQuery({ queryKey: ["passport", id], queryFn: () => api.getPassport(id) });
+  const isOwner = artworkQ.data?.ownerId === userId;
+  // ?dodaj-wpis=1 opens the "add event" dialog (used by the red screen's "add documents" button).
+  const addOpen = isOwner && params.get("dodaj-wpis") === "1";
+  const setAddOpen = (open: boolean) => setParams(open ? { "dodaj-wpis": "1" } : {}, { replace: true });
 
   if (artworkQ.isError) {
     return (
@@ -73,11 +80,19 @@ export function ArtworkPage() {
               Każdy wpis zawiera skrót SHA-256 poprzedniego. Zmiana dowolnego wpisu wstecz przerywa łańcuch i od razu zmienia status na czerwony.
             </p>
           </div>
-          {passport && (
-            <ChainPanel chainValid={passport.chainValid} count={passport.events.length}
-              brokenAtSeq={passport.brokenAtSeq} verifiedAt={passport.verifiedAt} />
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            {passport && (
+              <ChainPanel chainValid={passport.chainValid} count={passport.events.length}
+                brokenAtSeq={passport.brokenAtSeq} verifiedAt={passport.verifiedAt} />
+            )}
+            {isOwner && (
+              <button type="button" onClick={() => setAddOpen(true)} className="btn-outline min-h-12">
+                <Plus size={16} /> Dodaj wpis
+              </button>
+            )}
+          </div>
         </div>
+        {art && <AddEventModal open={addOpen} onClose={() => setAddOpen(false)} artworkId={art.id} />}
         {passport ? (
           <PassportTimeline events={passport.events} showUpcoming={art?.auction?.status === "live"} />
         ) : (

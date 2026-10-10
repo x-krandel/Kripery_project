@@ -123,7 +123,7 @@ export function AddArtwork() {
       </div>
 
       {held ? (
-        <LossAlert artwork={held} onAddDocuments={() => { setHeld(null); toast("Dodawanie dokumentów pojawi się w kolejnej wersji", "error"); }} />
+        <LossAlert artwork={held} onAddDocuments={() => navigate(`/dziela/${held.id}?dodaj-wpis=1`)} />
       ) : create.isPending ? (
         <div className="mx-auto flex max-w-md flex-col items-center gap-5 py-20 text-center">
           <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-ok-tint text-ok">

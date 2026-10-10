@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/endpoints";
 import type { AuctionDetailDto, BidDto, UserDto } from "../api/types";
 
@@ -14,10 +14,13 @@ export interface AuctionSocketState {
   connected: boolean;
 }
 
-/** Live auction state: snapshot on connect, then bids and the end. Reconnects after 1 s. */
-export function useAuctionSocket(auctionId: number | null): AuctionSocketState {
+/** Live auction state: snapshot on connect, then bids and the end. Reconnects after 1 s.
+ *  `resync()` reconnects to get a fresh snapshot (used after BID_TOO_LOW). */
+export function useAuctionSocket(auctionId: number | null): AuctionSocketState & { resync: () => void } {
   const [state, setState] = useState<AuctionSocketState>({ auction: null, lastBid: null, ended: null, connected: false });
+  const [nonce, setNonce] = useState(0);
   const endedRef = useRef(false);
+  const resync = useCallback(() => setNonce((n) => n + 1), []);
 
   useEffect(() => {
     if (auctionId == null) return;
@@ -67,7 +70,7 @@ export function useAuctionSocket(auctionId: number | null): AuctionSocketState {
       if (retry) clearTimeout(retry);
       close?.();
     };
-  }, [auctionId]);
+  }, [auctionId, nonce]);
 
-  return state;
+  return { ...state, resync };
 }
