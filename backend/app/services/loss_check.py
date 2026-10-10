@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import LostArtwork
+from app.models import Artwork, LostArtwork
 from app.schemas import LostArtworkMatchDto
 from app.timeutil import utcnow
 
@@ -41,3 +41,22 @@ def check(db: Session, vec: list[float]) -> LossResult:
         checked_at=utcnow(),
         matches=matches,
     )
+
+
+def find_duplicate(db: Session, vec: list[float]) -> tuple[int, float] | None:
+    """Closest registered artwork if it is at least as similar as the threshold.
+
+    Held artworks are skipped: they never became part of the registry, and the
+    red-screen demo has to work for the same lost painting more than once.
+    """
+    distance = Artwork.embedding.cosine_distance(vec)
+    row = db.execute(
+        select(Artwork.id, distance.label("distance"))
+        .where(Artwork.embedding.is_not(None), Artwork.status != "held")
+        .order_by(distance)
+        .limit(1)
+    ).first()
+    if row is None:
+        return None
+    similarity = 1 - row.distance
+    return (row.id, similarity) if similarity >= settings.duplicate_match_threshold else None

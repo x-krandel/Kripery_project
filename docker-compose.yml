@@ -22,13 +22,22 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql+psycopg://rodowod:rodowod@db:5432/rodowod
+      # Set DB_HOST in .env to use Azure PostgreSQL instead of the db container.
+      DB_HOST: ${DB_HOST:-}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-rodowod}
+      DB_USER: ${DB_USER:-}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      DB_SSLMODE: ${DB_SSLMODE:-require}
+      DB_SSLROOTCERT: ${DB_SSLROOTCERT:-}
       MEDIA_DIR: /app/media
       DATA_DIR: /data
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://kripery-project.openai.azure.com/openai/v1}
       LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
-      LOSS_MATCH_THRESHOLD: ${LOSS_MATCH_THRESHOLD:-0.95}
+      LOSS_MATCH_THRESHOLD: ${LOSS_MATCH_THRESHOLD:-0.85}
+      DUPLICATE_MATCH_THRESHOLD: ${DUPLICATE_MATCH_THRESHOLD:-0.92}
     ports:
       - "8000:8000"
     volumes:
