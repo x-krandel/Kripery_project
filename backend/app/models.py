@@ -24,10 +24,24 @@ class Base(DeclarativeBase):
 
 class User(Base):
     __tablename__ = "users"
+    # Unique login; an index (not a column constraint) so db.init_db can add it to old tables too.
+    __table_args__ = (Index("ix_users_username", "username", unique=True),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
     role: Mapped[str] = mapped_column(String(16))
+    username: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    password_hash: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+
+class AuthToken(Base):
+    """Login session. Only the SHA-256 of the token is stored; the raw token lives in the browser."""
+
+    __tablename__ = "auth_tokens"
+
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
 class Upload(Base):

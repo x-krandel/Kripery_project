@@ -6,7 +6,7 @@ import { api } from "../api/endpoints";
 import { ArtworkFrame } from "../components/ArtworkFrame";
 import { ArrowLeft, LiveDot, ShieldCheck } from "../components/Icons";
 import { useToast } from "../hooks/useToast";
-import { Avatar } from "../components/UserSwitcher";
+import { Avatar } from "../components/Avatar";
 import { useAuctionSocket } from "../hooks/useAuctionSocket";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useNow } from "../hooks/useNow";
@@ -112,8 +112,13 @@ export function AuctionLive() {
         </div>
 
         <div className="sticky bottom-0 flex flex-col gap-3 border-t border-line bg-surface px-4 pb-6 pt-3.5">
-          {isOwner ? (
-            <p className="m-0 py-3 text-center text-sm font-semibold text-ink-soft">To Twoja aukcja. {user?.name}, zmień użytkownika, aby licytować.</p>
+          {userId == null ? (
+            <Link to={`/logowanie?next=${encodeURIComponent(`/dziela/${id}/aukcja`)}`}
+              className="flex min-h-14 items-center justify-center rounded-full bg-accent text-lg font-bold text-white no-underline hover:bg-accent-dark">
+              Zaloguj się, aby licytować
+            </Link>
+          ) : isOwner ? (
+            <p className="m-0 py-3 text-center text-sm font-semibold text-ink-soft">To Twoja aukcja. Aby licytować, zaloguj się na inne konto.</p>
           ) : (
             <>
               <div role="group" aria-label="Wysokość podbicia" className="grid grid-cols-3 gap-2">

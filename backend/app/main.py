@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.db import init_db
-from app.routers import ai, artworks, auctions, lost, uploads, users
+from app.routers import ai, artworks, auctions, auth, lost, uploads, users
 from app.services import auction_engine, embeddings
 
 logging.basicConfig(level=logging.INFO)
@@ -44,7 +44,7 @@ def health():
     return {"ok": True}
 
 
-for module in (users, uploads, ai, artworks, auctions, lost):
+for module in (auth, users, uploads, ai, artworks, auctions, lost):
     api.include_router(module.router)
 app.include_router(api)
 

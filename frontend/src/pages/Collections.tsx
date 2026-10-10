@@ -7,8 +7,7 @@ import { ArtworkFrame } from "../components/ArtworkFrame";
 import { LiveChip, VerifiedPill } from "../components/Badges";
 import { ArrowRight } from "../components/Icons";
 import { Skeleton } from "../components/Skeleton";
-import { Avatar } from "../components/UserSwitcher";
-import { useCurrentUser } from "../hooks/useCurrentUser";
+import { Avatar } from "../components/Avatar";
 import { attribution, formatPln, plural } from "../lib/format";
 import { roleLabel } from "../lib/labels";
 
@@ -22,11 +21,11 @@ function possessive(name: string): string {
 
 /** B8 — list of private collections. */
 export function Collections() {
-  const { users } = useCurrentUser();
+  const { data: users = [], isLoading: usersLoading } = useQuery({ queryKey: ["users"], queryFn: api.listUsers });
   const queries = useQueries({
     queries: users.map((u) => ({ queryKey: ["artworks", "owner", u.id], queryFn: () => api.listArtworks(u.id) })),
   });
-  const loading = users.length === 0 || queries.some((q) => q.isLoading);
+  const loading = usersLoading || queries.some((q) => q.isLoading);
   const collections = users
     .map((u, i) => ({ user: u, works: publicWorks(queries[i]?.data) }))
     .filter((c) => c.works.length > 0);
@@ -82,7 +81,7 @@ function CollectionCard({ user, works }: { user: UserDto; works: ArtworkSummaryD
 /** B8 — one collection shown as a virtual exhibition. */
 export function CollectionPage() {
   const userId = Number(useParams().userId);
-  const { users } = useCurrentUser();
+  const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: api.listUsers });
   const owner = users.find((u) => u.id === userId);
   const { data, isLoading } = useQuery({ queryKey: ["artworks", "owner", userId], queryFn: () => api.listArtworks(userId) });
   const works = publicWorks(data);

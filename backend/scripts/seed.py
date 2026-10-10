@@ -15,10 +15,13 @@ from app.config import settings
 from app.db import SessionLocal, engine, init_db
 from app.models import Artwork, Auction, Base, Bid, LostArtwork, User
 from app.services import embeddings, loss_check
+from app.services.auth import hash_password
 from app.services.hashing import append_event
 from app.timeutil import utcnow
 
-USERS = [(1, "Anna", "collector"), (2, "Piotr", "buyer"), (3, "Ewa", "buyer")]
+# (id, name, role, login). All demo accounts share DEMO_PASSWORD; it is shown on the login page.
+USERS = [(1, "Anna", "collector", "anna"), (2, "Piotr", "buyer", "piotr"), (3, "Ewa", "buyer", "ewa")]
+DEMO_PASSWORD = "demo1234"
 
 # Same catalog as the approved design concepts (and frontend/src/api/mocks.ts).
 # image = file in data/demo/ (placeholders until real public-domain works are added).
@@ -99,8 +102,8 @@ def seed() -> int:
     now = utcnow()
     auctions_created = 0
     with SessionLocal() as db:
-        for uid, name, role in USERS:
-            db.add(User(id=uid, name=name, role=role))
+        for uid, name, role, username in USERS:
+            db.add(User(id=uid, name=name, role=role, username=username, password_hash=hash_password(DEMO_PASSWORD)))
         db.flush()
 
         artworks: list[Artwork] = []

@@ -1,16 +1,16 @@
-// Thin fetch wrapper: base URL, demo-user header, contract error format.
+// Thin fetch wrapper: base URL, login token, contract error format.
 
 export const API_URL: string = (import.meta.env.VITE_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 export const USE_MOCKS: boolean = import.meta.env.VITE_USE_MOCKS === "true";
 
-let currentUserId: number | null = null;
+let authToken: string | null = null;
 
-export function setApiUser(id: number | null): void {
-  currentUserId = id;
+export function setApiToken(token: string | null): void {
+  authToken = token;
 }
 
-export function getApiUser(): number | null {
-  return currentUserId;
+export function getApiToken(): string | null {
+  return authToken;
 }
 
 export class ApiRequestError extends Error {
@@ -44,7 +44,7 @@ async function toError(res: Response): Promise<ApiRequestError> {
 
 export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {};
-  if (currentUserId != null) headers["X-User-Id"] = String(currentUserId);
+  if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
 
   let payload: BodyInit | undefined;
   if (body instanceof FormData) {
@@ -61,6 +61,7 @@ export async function request<T>(method: string, path: string, body?: unknown): 
     throw new ApiRequestError(0, "NETWORK", "Brak połączenia z serwerem.");
   }
   if (!res.ok) throw await toError(res);
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 

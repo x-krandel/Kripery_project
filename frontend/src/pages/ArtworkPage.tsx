@@ -188,6 +188,10 @@ function AuctionBox({ art }: { art: ArtworkDetailDto }) {
         <div className="flex flex-wrap gap-3">
           {isOwner ? (
             <span className="flex-1 rounded-full bg-ground px-5 py-4 text-center text-[15px] font-semibold text-ink-soft">To Twoja aukcja — obserwuj ją na żywo</span>
+          ) : userId == null ? (
+            <Link to={`/logowanie?next=${encodeURIComponent(`/dziela/${art.id}/aukcja`)}`} className="btn-primary min-h-14 flex-[1_1_220px] text-[17px]">
+              Zaloguj się, aby licytować
+            </Link>
           ) : (
             <Link to={`/dziela/${art.id}/aukcja`} className="btn-primary min-h-14 flex-[1_1_220px] text-[17px]">Licytuj {formatPln(next)}</Link>
           )}

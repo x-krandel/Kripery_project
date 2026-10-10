@@ -2,9 +2,9 @@
 // Same demo data and the same rules as the backend stub, so switching to the real API
 // changes nothing on screen. Lets the frontend work before the backend is ready.
 
-import { ApiRequestError, getApiUser } from "./client";
+import { ApiRequestError, getApiToken } from "./client";
 import type {
-  AiDescribeRequest, AiDescriptionDto, ArtworkCategory, ArtworkDetailDto, ArtworkSummaryDto,
+  AiDescribeRequest, AiDescriptionDto, AuthResponse, LoginRequest, RegisterRequest, ArtworkCategory, ArtworkDetailDto, ArtworkSummaryDto,
   AuctionDetailDto, AuctionStatus, AuctionSummaryDto, AuctionWsMessage, BidDto, CreateArtworkRequest,
   CreateAuctionRequest, LostArtworkDto, LostArtworkMatchDto, NewPassportEventRequest,
   PassportDto, PassportEventDto, PassportEventType, PlaceBidRequest, UploadDto, UserDto,
@@ -63,6 +63,12 @@ const users: UserDto[] = [
   { id: 2, name: "Piotr", role: "buyer" },
   { id: 3, name: "Ewa", role: "buyer" },
 ];
+// Same demo accounts as backend/scripts/seed.py. Mock passwords are plain text: mocks never leave the browser.
+const accounts = new Map<string, { userId: number; password: string }>([
+  ["anna", { userId: 1, password: "demo1234" }],
+  ["piotr", { userId: 2, password: "demo1234" }],
+  ["ewa", { userId: 3, password: "demo1234" }],
+]);
 const lost: LostArtworkDto[] = [
   { id: 1, title: "Portret młodzieńca", artist: "Rafael Santi", sourceUrl: "https://dzielautracone.gov.pl/artykuly/100-portret-mlodzienca-losy-zaginionego-obrazu", imageUrl: "/demo/lost-portrait.svg" },
 ];
@@ -218,9 +224,15 @@ function emit(auctionId: number, msg: AuctionWsMessage): void {
 }
 
 function requireUser(): UserDto {
-  const id = getApiUser();
+  // Mock tokens are "mock-<userId>", so a login survives a page reload (mock state is rebuilt on load).
+  const token = getApiToken();
+  const id = token?.startsWith("mock-") ? Number(token.slice(5)) : undefined;
   const u = id == null ? undefined : users.find((x) => x.id === id);
-  return u ?? fail(401, "NO_USER", "Wybierz użytkownika demo.");
+  return u ?? fail(401, "NO_USER", "Zaloguj się, aby kontynuować");
+}
+
+function issue(userId: number): AuthResponse {
+  return { token: `mock-${userId}`, user: userById(userId) };
 }
 function getArtworkOr404(id: number): MArtwork {
   return artworks.get(id) ?? fail(404, "NOT_FOUND", "Nie znaleziono dzieła.");
@@ -280,6 +292,29 @@ export function createMockApi(): Api {
 }
 
 const mockApi: Api = {
+  async register(req: RegisterRequest): Promise<AuthResponse> {
+    const username = req.username.trim().toLowerCase();
+    if (!/^[a-z0-9_.-]{3,32}$/.test(username)) fail(400, "INVALID_USERNAME", "Login: 3–32 znaki, małe litery, cyfry oraz . _ -");
+    if (req.password.length < 6) fail(400, "WEAK_PASSWORD", "Hasło musi mieć co najmniej 6 znaków");
+    if (accounts.has(username)) fail(409, "USERNAME_TAKEN", "Ten login jest już zajęty");
+    const id = Math.max(...users.map((u) => u.id)) + 1;
+    users.push({ id, name: username, role: "collector" });
+    accounts.set(username, { userId: id, password: req.password });
+    return delay(issue(id), 400);
+  },
+
+  async login(req: LoginRequest): Promise<AuthResponse> {
+    const acc = accounts.get(req.username.trim().toLowerCase());
+    if (!acc || acc.password !== req.password) fail(401, "INVALID_CREDENTIALS", "Nieprawidłowy login lub hasło");
+    return delay(issue(acc!.userId), 300);
+  },
+
+  me: () => delay(requireUser()),
+
+  async logout(): Promise<void> {
+    await delay(null, 100);
+  },
+
   listUsers: () => delay(users),
 
   async upload(file: File): Promise<UploadDto> {

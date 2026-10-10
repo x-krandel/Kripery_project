@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { ToastProvider } from "./components/Toast";
-import { CurrentUserProvider } from "./components/CurrentUserProvider";
+import { AuthProvider } from "./components/AuthProvider";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -15,11 +15,11 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <CurrentUserProvider>
+        <AuthProvider>
           <ToastProvider>
             <App />
           </ToastProvider>
-        </CurrentUserProvider>
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

@@ -30,6 +30,10 @@ docker compose exec backend python -m scripts.index_lost      # датасет �
 docker compose exec backend python -m scripts.seed --reset    # 3 пользователя, 8 работ, 3 аукциона
 ```
 
+**Аккаунты демо** (создаёт сид): `anna` (владелица каталога), `piotr`, `ewa`, пароль у всех `demo1234`. На странице входа `/logowanie` есть кнопки быстрого входа. Новый аккаунт: `/rejestracja`, только логин и пароль.
+
+**После обновления до версии с логином** обязательно `docker compose up -d --build`, затем `seed --reset`: старые пользователи в базе без паролей, а заголовок `X-User-Id` больше не принимается.
+
 Проверка: http://localhost:8000/docs
 
 **Сид всегда в локальный контейнер.** `seed --reset` пересоздаёт таблицы. Если в `.env` настроена общая база в Azure, запускайте его только по договорённости в чате.
@@ -57,7 +61,8 @@ npm run dev            # http://localhost:5173
 - Каталог и паспорт: `/aukcje`, `/dziela/1`, публичный паспорт `/p/1`.
 - Новые экраны: `/szukamy` (индекс потерь), `/kolekcje` (коллекции как выставки), «Dodaj wpis» на странице своей работы.
 - Красный экран: «Dodaj dzieło» → загрузить `data/lost/images/lost-portrait.jpg`, ввести название, «Zapisz i sprawdź».
-- Ставки: открыть `/dziela/1/aukcja` в двух вкладках, во второй сменить пользователя (Piotr ↔ Ewa) на любой другой странице.
+- Вход: без логина можно смотреть всё; «Dodaj dzieło» и ставки отправляют на `/logowanie` и после входа возвращают обратно.
+- Ставки: вход хранится в браузере, поэтому вкладки одного окна делят один аккаунт. Для двух участников: обычное окно (Piotr) и окно инкогнито или второй телефон (Ewa), в обоих открыть `/dziela/1/aukcja`. Владелица аукциона (Anna) ставить не может.
 - «Сломанная» история (шаг 5 демо): меняем запись паспорта в базе в обход API, потом обновляем `/dziela/1`:
   `docker compose exec db psql -U rodowod -c "UPDATE passport_events SET description = description || ' (zmienione)' WHERE artwork_id = 1 AND seq = 2;"`
   Вернуть как было: тот же UPDATE с `replace(description, ' (zmienione)', '')` или `seed --reset`.

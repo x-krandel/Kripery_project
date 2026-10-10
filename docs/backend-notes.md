@@ -1,8 +1,9 @@
 # Backend notes: pitfalls in the spec and how they are handled
 
-The DTO contract is unchanged; one error code was added (section 13).
-Everything else below is backend behaviour that the spec either leaves open
-or would get wrong if implemented literally.
+Everything below is backend behaviour that the spec either leaves open or would
+get wrong if implemented literally. Two contract changes: a new error code for
+duplicate registrations (section 13), and accounts with login and password in
+place of the `X-User-Id` header (section 15).
 
 ## 1. Passport hashes and time zones
 
@@ -97,14 +98,15 @@ appears in seeded or future data; the loop moves it to `live` when due.
 
 ## 10. Seed and the lost dataset
 
-- `seed.py --reset` drops only the app tables. `lost_artworks` is kept, since
-  rebuilding it with `index_lost.py` takes minutes.
+- `seed.py --reset` drops only the app tables (users, sessions, artworks,
+  passports, auctions). `lost_artworks` is kept, since rebuilding it with
+  `index_lost.py` takes minutes. Everyone is logged out after a reset.
 - Seeded artworks go through the real loss check, so run `index_lost.py` first.
 - `index_lost.py` skips rows whose `source_url` is already indexed, so it can
   be re-run after adding rows to `lost.csv`.
-- Seed titles are placeholders until they are copied from the design concepts
-  (`ARTWORKS` in `scripts/seed.py`). Missing images in `data/demo/` are
-  replaced with a plain placeholder and a warning.
+- Seed titles come from the design concepts (`ARTWORKS` in `scripts/seed.py`).
+  Missing images in `data/demo/` are replaced with a plain placeholder and a
+  warning.
 
 ## 11. CLIP in Docker
 
@@ -115,10 +117,11 @@ appears in seeded or future data; the loop moves it to `live` when due.
 
 ## 12. AI description
 
-The vision LLM provider is not chosen yet. `/api/ai/describe` checks the upload
-and answers `502 AI_UNAVAILABLE`, which the frontend already handles by leaving
-the form empty. The prompt, timeout and response schema are in
-`app/services/ai_describe.py`; wiring a client is one function.
+`/api/ai/describe` calls Azure OpenAI (v1 endpoint, `POST {LLM_BASE_URL}/chat/completions`
+with the image as a data URL). `LLM_MODEL` is the deployment name. Without
+`LLM_API_KEY`, or on any provider error, it answers `502 AI_UNAVAILABLE`, and the
+frontend leaves the form empty for manual input. The prompt, timeout and
+response schema are in `app/services/ai_describe.py`.
 
 ## 13. Duplicate registrations (new error code)
 
@@ -181,3 +184,27 @@ docker compose exec backend python -m scripts.seed --reset
 
 Tables are created on startup by the admin user. Connections are recycled
 every 30 minutes, since Azure drops long-idle ones.
+
+## 15. Accounts and sessions (MVP)
+
+**Change.** The spec identified the user by an `X-User-Id` header that anyone
+could set. It is replaced by login and password accounts; there is no e-mail
+and no password reset.
+
+- `POST /api/auth/register {username, password}` → `201 {token, user}`.
+  Login: 3–32 characters, `a-z 0-9 . _ -`, stored lowercase. Password: 6–128
+  characters. Errors: `400 INVALID_USERNAME`, `400 WEAK_PASSWORD`,
+  `409 USERNAME_TAKEN`.
+- `POST /api/auth/login` → `200 {token, user}` or `401 INVALID_CREDENTIALS`.
+- `GET /api/auth/me` → `UserDto`; `POST /api/auth/logout` → `204`.
+- Protected endpoints read `Authorization: Bearer <token>` and answer
+  `401 NO_USER` without a valid token. Reading stays public.
+- Passwords: `hashlib.scrypt` (N=2^14, r=8, p=1, 16-byte salt), compared with
+  `hmac.compare_digest`. Tokens: 32 random bytes; only their SHA-256 is stored
+  in `auth_tokens`, so a database leak does not expose live sessions. Tokens do
+  not expire; logout deletes the row.
+- Migration: `init_db` adds `users.username` and `users.password_hash` with
+  `ADD COLUMN IF NOT EXISTS`, so an existing database keeps its data. Old users
+  have no password until `seed --reset` recreates them.
+- Seed accounts: `anna` (owner of the catalog), `piotr`, `ewa`; password
+  `demo1234`.

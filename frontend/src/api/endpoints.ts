@@ -3,7 +3,7 @@
 import { request, USE_MOCKS, wsUrl } from "./client";
 import { createMockApi } from "./mocks";
 import type {
-  AiDescribeRequest, AiDescriptionDto, ArtworkDetailDto, ArtworkSummaryDto, AuctionDetailDto, AuctionWsMessage,
+  AiDescribeRequest, AiDescriptionDto, AuthResponse, LoginRequest, RegisterRequest, ArtworkDetailDto, ArtworkSummaryDto, AuctionDetailDto, AuctionWsMessage,
   BidDto, CreateArtworkRequest, CreateAuctionRequest, LostArtworkDto, NewPassportEventRequest, PassportDto,
   PassportEventDto, PlaceBidRequest, UploadDto, UserDto,
 } from "./types";
@@ -11,6 +11,10 @@ import type {
 export type AuctionListener = (msg: AuctionWsMessage) => void;
 
 export interface Api {
+  register(req: RegisterRequest): Promise<AuthResponse>;
+  login(req: LoginRequest): Promise<AuthResponse>;
+  me(): Promise<UserDto>;
+  logout(): Promise<void>;
   listUsers(): Promise<UserDto[]>;
   upload(file: File): Promise<UploadDto>;
   describe(req: AiDescribeRequest): Promise<AiDescriptionDto>;
@@ -28,6 +32,10 @@ export interface Api {
 }
 
 const realApi: Api = {
+  register: (req) => request("POST", "/auth/register", req),
+  login: (req) => request("POST", "/auth/login", req),
+  me: () => request("GET", "/auth/me"),
+  logout: () => request<void>("POST", "/auth/logout"),
   listUsers: () => request("GET", "/users"),
   upload: (file) => {
     const form = new FormData();

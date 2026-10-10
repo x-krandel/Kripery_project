@@ -25,14 +25,16 @@ const price = (a: ArtworkSummaryDto) => a.auction?.currentPrice ?? 0;
 export function Catalog() {
   const [params, setParams] = useSearchParams();
   const view = params.get("widok") === "kolekcje" ? "collection" : "auctions";
-  const { userId, user } = useCurrentUser();
+  const { userId, user, status } = useCurrentUser();
+  const needsLogin = view === "collection" && status === "anonymous";
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("ending");
   const [q, setQ] = useState("");
 
   const { data, isLoading, isError } = useQuery({
     queryKey: view === "collection" ? ["artworks", "owner", userId] : ["artworks"],
-    queryFn: () => api.listArtworks(view === "collection" ? userId : undefined),
+    queryFn: () => api.listArtworks(view === "collection" ? (userId ?? undefined) : undefined),
+    enabled: view === "auctions" || userId != null,
   });
 
   const visible = useMemo(() => {
@@ -103,6 +105,14 @@ export function Catalog() {
         </div>
       </div>
 
+      {needsLogin && (
+        <p className="m-0 rounded-2xl border border-dashed border-line-strong p-12 text-center text-base text-ink-soft">
+          Zaloguj się, aby zobaczyć swoją kolekcję.{" "}
+          <Link to="/logowanie?next=%2Faukcje%3Fwidok%3Dkolekcje" className="font-semibold text-accent">Zaloguj się</Link>
+          {" "}albo <Link to="/rejestracja?next=%2Fdodaj" className="font-semibold text-accent">załóż konto</Link>.
+        </p>
+      )}
+
       {isError && <p className="m-0 rounded-2xl bg-alert-tint p-6 text-alert">Nie udało się wczytać lotów. Sprawdź, czy backend działa.</p>}
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-x-7 gap-y-10">
@@ -116,7 +126,7 @@ export function Catalog() {
         ))}
       </div>
 
-      {!isLoading && !isError && visible.length === 0 && (
+      {!needsLogin && !isLoading && !isError && visible.length === 0 && (
         <p className="m-0 rounded-2xl border border-dashed border-line-strong p-12 text-center text-base text-ink-soft">
           Brak lotów w tej kategorii. Wybierz „Wszystkie” albo <Link to="/dodaj" className="font-semibold text-accent">dodaj własne dzieło</Link>.
         </p>
