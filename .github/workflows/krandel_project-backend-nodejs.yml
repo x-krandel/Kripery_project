@@ -54,9 +54,9 @@ jobs:
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F25198F8C1D74EEAA43926B77CDC54BC }}
 
       - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
         with:
           app-name: 'project-backend-nodejs'
           slot-name: 'Production'
-          package: frontend
+          package: .
