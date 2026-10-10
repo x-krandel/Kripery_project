@@ -1,7 +1,8 @@
 // In-browser mock of the whole API (VITE_USE_MOCKS=true).
-// Same demo data and the same rules as the backend stub, so switching to the real API
-// changes nothing on screen. Lets the frontend work before the backend is ready.
+// Same demo data as backend/scripts/seed.py and the same rules as the backend
+// (app/services/auction_engine.py), so switching to the real API changes nothing on screen.
 
+import { formatPln } from "../lib/format";
 import { ApiRequestError, getApiToken, WS_CLOSE_NOT_FOUND } from "./client";
 import type {
   AiDescribeRequest, AiDescriptionDto, AuthResponse, LoginRequest, RegisterRequest, ArtworkCategory, ArtworkDetailDto, ArtworkSummaryDto,
@@ -20,8 +21,7 @@ const delay = <T,>(value: T, ms = 250 + Math.random() * 200): Promise<T> =>
 const fail = (status: number, code: string, message: string): never => {
   throw new ApiRequestError(status, code, message);
 };
-const formatPln = (n: number) =>
-  new Intl.NumberFormat("pl-PL", { useGrouping: "always" } as Intl.NumberFormatOptions).format(n) + " zł";
+const today = () => iso(now()).slice(0, 10);
 
 // Deterministic 64-hex hash (display + tamper demo only; the real chain is SHA-256 on the backend).
 function hash64(input: string): string {
@@ -79,8 +79,9 @@ const bids: MBid[] = [];
 const uploads = new Map<string, { imageUrl: string; name: string }>();
 const ids = { artwork: 1, event: 1, auction: 1, bid: 1 };
 
-const REG_CLEAR = "Automatyczne porównanie z bazą strat wojennych MKiDN: brak dopasowań.";
-const REG_MATCH = "Automatyczne porównanie z bazą strat wojennych MKiDN: możliwe dopasowanie, publikacja wstrzymana.";
+const REG_TITLE = "Dodano do Rodowodu";
+const REG_CLEAR = "Automatyczne porównanie z bazą strat wojennych MKiDN: brak dopasowań";
+const REG_MATCH = "Automatyczne porównanie z bazą strat wojennych MKiDN: możliwe dopasowanie, publikacja wstrzymana";
 
 function payload(e: MEvent): string {
   return JSON.stringify([e.artworkId, e.seq, e.type, e.occurredOn, e.title, e.description, e.createdAt]);
@@ -99,68 +100,73 @@ function appendEvent(artworkId: number, type: PassportEventType, occurredOn: str
   return e;
 }
 
+// Generic history for works without their own: the first 1 + i % 4 entries (backend HISTORY).
+const HISTORY: Array<[PassportEventType, string, string]> = [
+  ["creation", "Utworzenie", "Powstanie dzieła."],
+  ["exhibition", "Wystawa", "Wystawa zbiorowa w Towarzystwie Zachęty Sztuk Pięknych."],
+  ["conservation", "Konserwacja", "Oczyszczenie i zabezpieczenie warstwy malarskiej."],
+  ["ownership_change", "Zmiana właściciela", "Przekazanie w spadku."],
+];
+
 function seed(): void {
-  const t = iso(new Date(Date.now() - 86_400_000));
-  const works: Array<[string, string, string, string, ArtworkCategory, string, string, string]> = [
-    ["Portret damy w czerni", "Szkoła polska", "ok. 1895", "olej na płótnie", "painting", "64 × 48 cm", "portrait",
+  const t = iso(now());
+  // [owner, title, artist, dating, technique, category, dimensions, image, story]
+  const works: Array<[number, string, string, string, string, ArtworkCategory, string, string, string]> = [
+    [1, "Portret damy w czerni", "Szkoła polska", "ok. 1895", "olej na płótnie", "painting", "64 × 48 cm", "portrait",
       "Obraz wisiał w salonie mojej prababci w Krakowie. Po wojnie przyjechał z rodziną do Wrocławia, owinięty w koc, razem z albumem zdjęć."],
-    ["Widok na Odrę", "Szkoła wrocławska", "ok. 1910", "olej na desce", "painting", "38 × 52 cm", "city",
+    [1, "Widok na Odrę", "Szkoła wrocławska", "ok. 1910", "olej na desce", "painting", "38 × 52 cm", "city",
       "Kupiony na pchlim targu przy Hali Targowej w latach 90."],
-    ["Pejzaż jesienny", "Szkoła polska", "ok. 1880", "olej na płótnie", "painting", "72 × 90 cm", "landscape",
+    [1, "Pejzaż jesienny", "Szkoła polska", "ok. 1880", "olej na płótnie", "painting", "72 × 90 cm", "landscape",
       "Pamiątka rodzinna, przez lata wisiała w dworku pod Kaliszem."],
-    ["Martwa natura z dzbanem", "Malarz nieznany", "XIX w.", "olej na płótnie", "painting", "46 × 38 cm", "still",
+    [1, "Martwa natura z dzbanem", "Malarz nieznany", "XIX w.", "olej na płótnie", "painting", "46 × 38 cm", "still",
       "Obraz z kolekcji dziadka, sygnatura nieczytelna."],
-    ["Kamienice przy rynku", "Szkoła polska", "ok. 1925", "gwasz na papierze", "works_on_paper", "30 × 42 cm", "townhouses",
+    [1, "Kamienice przy rynku", "Szkoła polska", "ok. 1925", "gwasz na papierze", "works_on_paper", "30 × 42 cm", "townhouses",
       "Gwasz kupiony w antykwariacie w Krakowie w 2004 roku."],
-    ["Studium głowy kobiety", "Krąg akademicki", "ok. 1900", "węgiel na papierze", "works_on_paper", "48 × 36 cm", "head-study",
+    [1, "Studium głowy kobiety", "Krąg akademicki", "ok. 1900", "węgiel na papierze", "works_on_paper", "48 × 36 cm", "head-study",
       "Rysunek z teki studenckiej, przechowywany w passe-partout."],
-    ["Owoce na cynowym talerzu", "Malarz nieznany", "ok. 1870", "olej na płótnie", "painting", "40 × 50 cm", "fruit-plate",
+    [2, "Owoce na cynowym talerzu", "Malarz nieznany", "ok. 1870", "olej na płótnie", "painting", "40 × 50 cm", "fruit-plate",
       "Obraz odziedziczony po ciotce z Lwowa."],
-    ["Łąka przed burzą", "Szkoła polska", "ok. 1905", "olej na tekturze", "painting", "33 × 41 cm", "storm-meadow",
+    [3, "Łąka przed burzą", "Szkoła polska", "ok. 1905", "olej na tekturze", "painting", "33 × 41 cm", "storm-meadow",
       "Mały format, malowany prawdopodobnie w plenerze."],
   ];
-  for (const [title, artist, dating, technique, category, dimensions, image, story] of works) {
+  works.forEach(([ownerId, title, artist, dating, technique, category, dimensions, image, story], i) => {
     const id = ids.artwork++;
     artworks.set(id, {
-      id, ownerId: 1, title, artist, dating, technique, category, dimensions, story,
+      id, ownerId, title, artist, dating, technique, category, dimensions, story,
       imageUrl: `/demo/${image}.svg`, status: "published", lossResult: "clear", lossTop: 0.31,
       lossCheckedAt: t, lossMatches: [],
     });
-  }
-  appendEvent(1, "creation", "1895", "Obraz powstaje w Krakowie", "Sygnatura i data na odwrocie płótna. Zdjęcie odwrocia w załączniku.", t);
-  appendEvent(1, "exhibition", "1912", "Wystawa salonowa w Krakowie", "Wzmianka w katalogu wystawy. Skan strony katalogu w załączniku.", t);
-  appendEvent(1, "ownership_change", "1968", "Zakup do kolekcji rodzinnej", "Odręczny rachunek sprzedaży. Obraz trafia do rodziny obecnej właścicielki.", t);
-  appendEvent(1, "conservation", "2019", "Oczyszczenie werniksu i dublowanie płótna", "Protokół konserwatorski (PDF) z opisem zakresu prac.", t);
-  appendEvent(1, "registration", "2026", "Wpis Anny K. i weryfikacja", REG_CLEAR, t);
-  for (let id = 2; id <= 8; id++) {
-    const a = artworks.get(id)!;
-    appendEvent(id, "creation", a.dating, "Powstanie dzieła", `${a.technique[0].toUpperCase()}${a.technique.slice(1)}, ${a.dimensions}.`, t);
-    appendEvent(id, "registration", "2026", "Dodano do Rodowodu", REG_CLEAR, t);
-  }
+    if (id === 1) {
+      appendEvent(1, "creation", "1895", "Obraz powstaje w Krakowie", "Sygnatura i data na odwrocie płótna. Zdjęcie odwrocia w załączniku.", t);
+      appendEvent(1, "exhibition", "1912", "Wystawa salonowa w Krakowie", "Wzmianka w katalogu wystawy. Skan strony katalogu w załączniku.", t);
+      appendEvent(1, "ownership_change", "1968", "Zakup do kolekcji rodzinnej", "Odręczny rachunek sprzedaży. Obraz trafia do rodziny obecnej właścicielki.", t);
+      appendEvent(1, "conservation", "2019", "Oczyszczenie werniksu i dublowanie płótna", "Protokół konserwatorski (PDF) z opisem zakresu prac.", t);
+    } else {
+      for (const [type, evTitle, description] of HISTORY.slice(0, 1 + (i % HISTORY.length))) {
+        appendEvent(id, type, type === "creation" ? dating : "", evTitle, description, t);
+      }
+    }
+    appendEvent(id, "registration", today(), REG_TITLE, REG_CLEAR, t);
+  });
 
-  const plan: Array<[number, number, number, number, number | null]> = [
-    [1, 12000, 100, 18200, 30], [2, 6000, 100, 9400, 120], [3, 15000, 200, 22600, 75], [4, 4000, 100, 4000, null],
-    [5, 2000, 100, 3100, 240], [6, 1500, 50, 2450, 360], [7, 5800, 100, 5800, null], [8, 5000, 100, 7900, 1440],
+  // [artworkId, start price, min step, minutes until end, bids as [userId, amount]]: backend AUCTIONS.
+  const plan: Array<[number, number, number, number, Array<[number, number]>]> = [
+    [1, 12000, 500, 5, [[2, 12000], [3, 12500], [2, 13500]]],
+    [2, 8000, 200, 30, [[3, 8000]]],
+    [3, 4500, 100, 120, []],
   ];
   const n = Date.now();
-  for (const [artworkId, start, step, current, mins] of plan) {
-    const id = ids.auction++;
-    const scheduled = mins === null;
+  for (const [artworkId, start, step, mins, seeded] of plan) {
+    const starts = n - minutes(10);
     const a: MAuction = {
-      id, artworkId, status: scheduled ? "scheduled" : "live", startPrice: start, minStep: step, currentPrice: start,
-      startsAt: iso(new Date(scheduled ? n + 86_400_000 : n - 3_600_000)),
-      endsAt: iso(new Date(scheduled ? n + 86_400_000 + minutes(120) : n + minutes(mins))),
-      leaderId: null, bidCount: 0,
+      id: ids.auction++, artworkId, status: "live", startPrice: start, minStep: step, currentPrice: start,
+      startsAt: iso(new Date(starts)), endsAt: iso(new Date(n + minutes(mins))), leaderId: null, bidCount: 0,
     };
-    auctions.set(id, a);
-    if (!scheduled && current > start) {
-      const amounts = [...new Set([3, 2, 1, 0].map((i) => current - i * step * 4).filter((x) => x >= start))];
-      amounts.forEach((amount, i) => {
-        const userId = i % 2 === 0 ? 2 : 3;
-        bids.push({ id: ids.bid++, auctionId: id, userId, amount, createdAt: iso(new Date(n - minutes(amounts.length - i))) });
-        a.currentPrice = amount; a.leaderId = userId; a.bidCount++;
-      });
-    }
+    auctions.set(a.id, a);
+    seeded.forEach(([userId, amount], k) => {
+      bids.push({ id: ids.bid++, auctionId: a.id, userId, amount, createdAt: iso(new Date(starts + minutes(k + 1))) });
+      a.currentPrice = amount; a.leaderId = userId; a.bidCount++;
+    });
   }
 }
 
@@ -245,13 +251,16 @@ function issue(userId: number): AuthResponse {
 }
 function getArtworkOr404(id: number): MArtwork {
   const a = artworks.get(id);
-  return a && isVisible(a) ? a : fail(404, "NOT_FOUND", "Nie znaleziono dzieła.");
+  return a && isVisible(a) ? a : fail(404, "NOT_FOUND", "Nie znaleziono dzieła");
 }
 
 function placeBidSync(auctionId: number, userId: number, amount: number): BidDto {
-  const a = auctions.get(auctionId) ?? fail(404, "NOT_FOUND", "Nie znaleziono aukcji.");
-  if (a.status !== "live") fail(409, "AUCTION_NOT_LIVE", "Aukcja nie trwa.");
-  if (artworks.get(a.artworkId)!.ownerId === userId) fail(403, "OWN_AUCTION", "Nie możesz licytować własnego dzieła.");
+  const a = auctions.get(auctionId) ?? fail(404, "NOT_FOUND", "Nie znaleziono aukcji");
+  // Decided by the clock, like the backend: the 1 s ticker may lag behind endsAt.
+  const t = Date.now();
+  if (a.status === "ended" || t >= new Date(a.endsAt).getTime()) fail(409, "AUCTION_NOT_LIVE", "Aukcja już się zakończyła");
+  if (t < new Date(a.startsAt).getTime()) fail(409, "AUCTION_NOT_LIVE", "Aukcja jeszcze się nie rozpoczęła");
+  if (artworks.get(a.artworkId)!.ownerId === userId) fail(403, "OWN_AUCTION", "Nie możesz licytować własnego dzieła");
   const minimum = a.bidCount > 0 ? a.currentPrice + a.minStep : a.startPrice;
   if (amount < minimum) fail(409, "BID_TOO_LOW", `Minimalna oferta to ${formatPln(minimum)}`);
   const b: MBid = { id: ids.bid++, auctionId, userId, amount, createdAt: iso(now()) };
@@ -285,8 +294,7 @@ const startClock = () => setInterval(() => {
       if (winner) {
         const art = artworks.get(a.artworkId)!;
         art.ownerId = winner.id;
-        appendEvent(art.id, "ownership_change", iso(now()).slice(0, 10), "Sprzedaż na aukcji Rodowód",
-          `Nowy właściciel: ${winner.name}. Cena: ${formatPln(a.currentPrice)}.`);
+        appendEvent(art.id, "ownership_change", today(), "Zmiana właściciela", "Sprzedaż na aukcji Rodowód");
       }
       emit(a.id, { type: "ended", winner, finalPrice: a.currentPrice });
     }
@@ -329,8 +337,8 @@ const mockApi: Api = {
 
   async upload(file: File): Promise<UploadDto> {
     requireUser();
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) fail(415, "UNSUPPORTED_FILE", "Dozwolone są pliki JPG, PNG lub WebP.");
-    if (file.size > 10 * 1024 * 1024) fail(413, "FILE_TOO_LARGE", "Plik jest większy niż 10 MB.");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) fail(415, "UNSUPPORTED_FILE", "Obsługiwane formaty: JPG, PNG, WebP");
+    if (file.size > 10 * 1024 * 1024) fail(413, "FILE_TOO_LARGE", "Plik jest większy niż 10 MB");
     const uploadId = crypto.randomUUID();
     const imageUrl = URL.createObjectURL(file);
     uploads.set(uploadId, { imageUrl, name: file.name });
@@ -339,7 +347,7 @@ const mockApi: Api = {
 
   async describe(req: AiDescribeRequest): Promise<AiDescriptionDto> {
     requireUser();
-    if (!uploads.has(req.uploadId)) fail(404, "NOT_FOUND", "Nie znaleziono zdjęcia.");
+    if (!uploads.has(req.uploadId)) fail(404, "NOT_FOUND", "Nie znaleziono przesłanego pliku");
     return delay<AiDescriptionDto>({
       title: "Portret damy w czerni", artist: "Szkoła polska", dating: "ok. 1895", technique: "olej na płótnie",
       category: "painting", aiFields: ["title", "artist", "dating", "technique", "category"],
@@ -355,7 +363,7 @@ const mockApi: Api = {
 
   async createArtwork(req: CreateArtworkRequest): Promise<ArtworkDetailDto> {
     const user = requireUser();
-    const up = uploads.get(req.uploadId) ?? fail(404, "NOT_FOUND", "Nie znaleziono zdjęcia.");
+    const up = uploads.get(req.uploadId) ?? fail(404, "NOT_FOUND", "Nie znaleziono przesłanego pliku");
     const isMatch = up.name.toLowerCase().startsWith("lost");
     const id = ids.artwork++;
     const art: MArtwork = {
@@ -367,7 +375,7 @@ const mockApi: Api = {
     };
     artworks.set(id, art);
     req.history.forEach((h) => appendEvent(id, h.type, h.occurredOn, h.title, h.description));
-    appendEvent(id, "registration", String(new Date().getFullYear()), `Wpis: ${user.name}`, isMatch ? REG_MATCH : REG_CLEAR);
+    appendEvent(id, "registration", today(), REG_TITLE, isMatch ? REG_MATCH : REG_CLEAR);
     return delay(artworkDetail(art), 1200);
   },
 
@@ -386,16 +394,16 @@ const mockApi: Api = {
   async addEvent(id: number, req: NewPassportEventRequest): Promise<PassportEventDto> {
     const user = requireUser();
     const art = getArtworkOr404(id);
-    if (art.ownerId !== user.id) fail(403, "NOT_OWNER", "To nie jest Twoje dzieło.");
+    if (art.ownerId !== user.id) fail(403, "NOT_OWNER", "To dzieło należy do innego użytkownika");
     return delay(eventDto(appendEvent(id, req.type, req.occurredOn, req.title, req.description), true));
   },
 
   async createAuction(req: CreateAuctionRequest): Promise<AuctionDetailDto> {
     const user = requireUser();
     const art = getArtworkOr404(req.artworkId);
-    if (art.ownerId !== user.id) fail(403, "NOT_OWNER", "To nie jest Twoje dzieło.");
-    if (art.status === "held") fail(409, "ARTWORK_HELD", "Dzieło czeka na weryfikację pochodzenia.");
-    if (activeAuctionOf(art.id)) fail(409, "AUCTION_EXISTS", "To dzieło ma już aktywną aukcję.");
+    if (art.ownerId !== user.id) fail(403, "NOT_OWNER", "To dzieło należy do innego użytkownika");
+    if (art.status === "held") fail(409, "ARTWORK_HELD", "Publikacja dzieła jest wstrzymana, nie można wystawić go na aukcję");
+    if (activeAuctionOf(art.id)) fail(409, "AUCTION_EXISTS", "To dzieło ma już trwającą aukcję");
     const t = now();
     const a: MAuction = {
       id: ids.auction++, artworkId: art.id, status: "live", startPrice: req.startPrice, minStep: req.minStep,
@@ -406,7 +414,7 @@ const mockApi: Api = {
     return delay(auctionDetail(a));
   },
 
-  getAuction: (id: number) => delay(auctionDetail(auctions.get(id) ?? fail(404, "NOT_FOUND", "Nie znaleziono aukcji."))),
+  getAuction: (id: number) => delay(auctionDetail(auctions.get(id) ?? fail(404, "NOT_FOUND", "Nie znaleziono aukcji"))),
 
   async placeBid(id: number, req: PlaceBidRequest): Promise<BidDto> {
     const user = requireUser();
