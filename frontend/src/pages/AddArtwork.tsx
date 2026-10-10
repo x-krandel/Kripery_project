@@ -16,6 +16,9 @@ import { CATEGORY_LABEL } from "../lib/labels";
 
 type AiKey = AiDescriptionDto["aiFields"][number];
 
+const fileSize = (bytes: number) =>
+  bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1).replace(".", ",")} MB`;
+
 interface Form {
   title: string;
   artist: string;
@@ -154,7 +157,7 @@ export function AddArtwork() {
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-sm text-ink-soft">{file?.name} · {file ? (file.size / 1024 / 1024).toFixed(1).replace(".", ",") : 0} MB</span>
+              <span className="text-sm text-ink-soft">{file?.name} · {file ? fileSize(file.size) : ""}</span>
               <button type="button" onClick={reset} className="btn-quiet text-sm">Zmień zdjęcie</button>
             </div>
             <div className="flex items-center gap-3.5 rounded-2xl border border-dashed border-[#BFB5A4] bg-[#FBF9F5] p-[18px]">
