@@ -16,7 +16,7 @@ const PLACEHOLDER: Record<EventType, string> = {
   creation: "np. Obraz powstaje w Krakowie",
 };
 
-/** B7 — owner appends an event to the passport chain. */
+/** B7: owner appends an event to the passport chain. */
 export function AddEventModal({ open, onClose, artworkId }: { open: boolean; onClose: () => void; artworkId: number }) {
   const qc = useQueryClient();
   const toast = useToast();
@@ -68,7 +68,7 @@ export function AddEventModal({ open, onClose, artworkId }: { open: boolean; onC
           <textarea rows={3} className="field resize-y py-3 leading-normal" value={description} onChange={(e) => setDescription(e.target.value)}
             placeholder="Co potwierdza ten wpis: katalog, rachunek, protokół konserwatorski…" />
         </label>
-        <p className="m-0 text-[13px] text-muted">Wpisu nie da się później zmienić — dopisze się na końcu łańcucha ze swoim skrótem SHA-256.</p>
+        <p className="m-0 text-[13px] text-muted">Wpisu nie da się później zmienić – dopisze się na końcu łańcucha ze swoim skrótem SHA-256.</p>
         {error && <p className="m-0 rounded-xl bg-alert-tint px-4 py-3 text-sm font-semibold text-alert">{error}</p>}
         <button type="submit" disabled={m.isPending} className="btn-primary min-h-[52px] text-base disabled:opacity-60">
           {m.isPending ? "Zapisuję…" : "Dodaj do rodowodu"}

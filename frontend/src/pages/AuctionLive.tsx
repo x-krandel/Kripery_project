@@ -15,7 +15,7 @@ import { isFeminine } from "../lib/labels";
 
 const STEPS = [100, 500, 1000];
 
-/** Mobile-first live auction — the screen shown on two phones on stage. */
+/** Mobile-first live auction: the screen shown on two phones on stage. */
 export function AuctionLive() {
   const id = Number(useParams().id);
   const { userId, user } = useCurrentUser();
@@ -120,7 +120,7 @@ export function AuctionLive() {
               <div className="flex flex-col gap-0.5">
                 <span className="text-xs text-muted lg:text-sm">{auction && auction.bidCount > 0 ? "Aktualna oferta" : "Cena wywoławcza"}</span>
                 <span key={auction?.currentPrice} aria-live="polite" className="animate-bump text-[34px] font-bold leading-[1.1] tracking-[-0.01em] lg:text-[44px]">
-                  {auction ? formatPln(auction.currentPrice) : "—"}
+                  {auction ? formatPln(auction.currentPrice) : "–"}
                 </span>
                 {youLead ? (
                   <span className="mt-1 self-start rounded-full bg-ok-tint px-2.5 py-0.5 text-xs font-bold text-ok">Prowadzisz</span>

@@ -1,11 +1,11 @@
 # Контракт API
 
-Полное ТЗ с контрактом лежит в документе команды «Rodowód — ТЗ бэкенда и фронтенда».
+Полное ТЗ с контрактом лежит в документе команды «Rodowód: ТЗ бэкенда и фронтенда».
 
 В коде контракт живёт в двух файлах, которые обязаны совпадать поле в поле:
 
-- `frontend/src/api/types.ts` — TypeScript-типы (camelCase)
-- `backend/app/schemas.py` — Pydantic-модели (snake_case в Python, camelCase в JSON через `CamelModel`)
+- `frontend/src/api/types.ts`: TypeScript-типы (camelCase)
+- `backend/app/schemas.py`: Pydantic-модели (snake_case в Python, camelCase в JSON через `CamelModel`)
 
 Правило: контракт меняется только PR, который правит оба файла сразу.
 
@@ -17,8 +17,8 @@
 |---|---|---|---|
 | POST | `/api/auth/register` | `{username, password}` | `201 {token, user: UserDto}` |
 | POST | `/api/auth/login` | `{username, password}` | `200 {token, user: UserDto}` |
-| GET | `/api/auth/me` | — | `200 UserDto` |
-| POST | `/api/auth/logout` | — | `204` |
+| GET | `/api/auth/me` | – | `200 UserDto` |
+| POST | `/api/auth/logout` | – | `204` |
 
 Защищённые запросы (создать работу, добавить запись в паспорт, создать аукцион, ставка) шлют `Authorization: Bearer <token>`. Без токена или с неверным: `401 NO_USER`. Чтение (каталог, паспорта, аукционы, WebSocket) открыто всем.
 

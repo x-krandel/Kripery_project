@@ -1,4 +1,4 @@
-// API contract — mirror of backend/app/schemas.py, field for field.
+// API contract: mirror of backend/app/schemas.py, field for field.
 // Change only together with the backend file (one PR for both).
 
 // ===== enums =====

@@ -11,7 +11,7 @@ printf 'VITE_USE_MOCKS=false\nVITE_API_URL=http://localhost:8000\n' > frontend/.
 
 Оба файла в `.gitignore`, в git они не попадают.
 
-**AI-автозаполнение (Azure OpenAI)** — необязательно, без ключа форма просто остаётся пустой. В `.env`:
+**AI-автозаполнение (Azure OpenAI)**: необязательно, без ключа форма просто остаётся пустой. В `.env`:
 
 ```bash
 LLM_API_KEY=<ключ из Azure: ресурс kripery-project → Keys and Endpoint>

@@ -146,7 +146,7 @@ function AuctionBox({ art }: { art: ArtworkDetailDto }) {
       <div className="flex flex-col gap-4 rounded-[20px] border border-line bg-surface p-7">
         <span className="text-lg font-semibold">To Twoje dzieło</span>
         <span className="text-[15px] text-ink-soft">
-          {art.status === "held" ? "Aukcję można wystawić dopiero po weryfikacji pochodzenia." : "Wystaw je na licytację — paszport pójdzie razem z nim."}
+          {art.status === "held" ? "Aukcję można wystawić dopiero po weryfikacji pochodzenia." : "Wystaw je na licytację – paszport pójdzie razem z nim."}
         </span>
         <button type="button" disabled={art.status === "held"} onClick={() => setOpen(true)} className="btn-primary min-h-14 text-[17px] disabled:opacity-40">
           Wystaw na aukcję
@@ -187,7 +187,7 @@ function AuctionBox({ art }: { art: ArtworkDetailDto }) {
       {!ended && (
         <div className="flex flex-wrap gap-3">
           {isOwner ? (
-            <span className="flex-1 rounded-full bg-ground px-5 py-4 text-center text-[15px] font-semibold text-ink-soft">To Twoja aukcja — obserwuj ją na żywo</span>
+            <span className="flex-1 rounded-full bg-ground px-5 py-4 text-center text-[15px] font-semibold text-ink-soft">To Twoja aukcja – obserwuj ją na żywo</span>
           ) : userId == null ? (
             <Link to={`/logowanie?next=${encodeURIComponent(`/dziela/${art.id}/aukcja`)}`} className="btn-primary min-h-14 flex-[1_1_220px] text-[17px]">
               Zaloguj się, aby licytować

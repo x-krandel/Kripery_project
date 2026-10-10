@@ -14,7 +14,8 @@ export function QrBlock({ artworkId, title }: { artworkId: number; title: string
     a.href = URL.createObjectURL(blob);
     a.download = `rodowod-qr-${artworkId}.svg`;
     a.click();
-    URL.revokeObjectURL(a.href);
+    // Revoking right away can cancel the download in Safari and Firefox.
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
 
   return (

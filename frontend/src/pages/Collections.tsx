@@ -19,7 +19,7 @@ function possessive(name: string): string {
   return name + "a";
 }
 
-/** B8 — list of private collections. */
+/** B8: list of private collections. */
 export function Collections() {
   const { data: users = [], isLoading: usersLoading } = useQuery({ queryKey: ["users"], queryFn: api.listUsers });
   // One catalog request (shared cache with Home and Catalog), grouped by owner.
@@ -79,7 +79,7 @@ function CollectionCard({ user, works }: { user: UserDto; works: ArtworkSummaryD
   );
 }
 
-/** B8 — one collection shown as a virtual exhibition. */
+/** B8: one collection shown as a virtual exhibition. */
 export function CollectionPage() {
   const userId = Number(useParams().userId);
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: api.listUsers });

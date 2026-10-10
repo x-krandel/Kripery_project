@@ -23,8 +23,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch((e) => {
         if (!alive) return;
-        // 401 = token expired or the database was reseeded; network errors also fall back to anonymous.
-        if (!(e instanceof ApiRequestError) || e.status === 401) storeToken(null);
+        // 401: logged out elsewhere or the database was reseeded (tokens never expire), so forget the token.
+        // A network error keeps it: the backend may be restarting, and the next page load checks again.
+        if (e instanceof ApiRequestError && e.status === 401) storeToken(null);
         setStatus("anonymous");
       });
     return () => {
