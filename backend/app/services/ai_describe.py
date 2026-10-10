@@ -1,7 +1,6 @@
 import base64
 import json
 import logging
-import os
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -13,10 +12,6 @@ from app.schemas import AiDescriptionDto, ArtworkCategory
 
 TIMEOUT_SECONDS = 15
 
-# OpenAI-compatible endpoint. Default: the team's Azure OpenAI resource (v1 API, no api-version needed).
-# LLM_MODEL is the *deployment name* in Azure AI Foundry, not necessarily the model name.
-LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://kripery-project.openai.azure.com/openai/v1").rstrip("/")
-LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 CATEGORIES = ("painting", "works_on_paper", "sculpture", "other")
 
 log = logging.getLogger(__name__)
@@ -57,7 +52,7 @@ def to_dto(answer: LlmAnswer, raw: dict) -> AiDescriptionDto:
 def _ask_llm(image_path: Path) -> dict:
     image_b64 = base64.b64encode(image_path.read_bytes()).decode("ascii")
     body = {
-        "model": LLM_MODEL,
+        "model": settings.llm_model,
         "messages": [{
             "role": "user",
             "content": [
@@ -70,7 +65,7 @@ def _ask_llm(image_path: Path) -> dict:
         "max_completion_tokens": 400,
     }
     req = urllib.request.Request(
-        f"{LLM_BASE_URL}/chat/completions",
+        f"{settings.llm_base_url}/chat/completions",
         data=json.dumps(body).encode("utf-8"),
         method="POST",
         headers={
@@ -91,8 +86,9 @@ def describe(image_path: Path) -> AiDescriptionDto:
     try:
         raw = _ask_llm(image_path)
         if raw.get("category") not in CATEGORIES:
-            raw["category"] = "other"
-        answer = LlmAnswer.model_validate(raw)
+            # Not a value the model gave us: use "other" and keep it out of aiFields.
+            raw["category"] = None
+        answer = LlmAnswer.model_validate({**raw, "category": raw["category"] or "other"})
     except urllib.error.HTTPError as e:
         log.warning("vision LLM HTTP %s: %s", e.code, e.read()[:300])
         raise AiUnavailable(f"HTTP {e.code}") from e

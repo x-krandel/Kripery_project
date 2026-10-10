@@ -95,8 +95,9 @@ def media_copy(name: str) -> str:
     return dst.name
 
 
-def seed() -> None:
+def seed() -> int:
     now = utcnow()
+    auctions_created = 0
     with SessionLocal() as db:
         for uid, name, role in USERS:
             db.add(User(id=uid, name=name, role=role))
@@ -132,7 +133,12 @@ def seed() -> None:
             artworks.append(artwork)
 
         for idx, start, step, minutes, bids in AUCTIONS:
+            if artworks[idx].status == "held":
+                # The API refuses this (ARTWORK_HELD); the seed bypasses the API, so check here.
+                print(f"warning: '{artworks[idx].title}' is held by the loss check, no auction created")
+                continue
             starts = now - timedelta(minutes=10)
+            auctions_created += 1
             auction = Auction(
                 artwork_id=artworks[idx].id, status="live", start_price=start, min_step=step,
                 current_price=start, bid_count=0, starts_at=starts,
@@ -151,6 +157,7 @@ def seed() -> None:
         # Explicit ids above do not advance the sequence.
         db.execute(text("SELECT setval('users_id_seq', (SELECT max(id) FROM users))"))
         db.commit()
+    return auctions_created
 
 
 def main() -> None:
@@ -160,8 +167,8 @@ def main() -> None:
     if args.reset:
         reset()
     init_db()
-    seed()
-    print("seeded: 3 users, 8 artworks, 3 auctions")
+    n = seed()
+    print(f"seeded: {len(USERS)} users, {len(ARTWORKS)} artworks, {n} auctions")
 
 
 if __name__ == "__main__":
