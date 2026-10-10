@@ -20,7 +20,8 @@ export function Home() {
     .filter((a) => a.auction?.status === "live")
     .sort((a, b) => new Date(a.auction!.endsAt).getTime() - new Date(b.auction!.endsAt).getTime())
     .slice(0, 3);
-  const hero = data?.find((a) => a.imageUrl.includes("landscape")) ?? data?.[0];
+  // Hero = a lot that is live right now, else any verified work.
+  const hero = live[0] ?? data?.find((a) => a.verified) ?? data?.[0];
 
   return (
     <main>
@@ -56,7 +57,7 @@ export function Home() {
               <span className="font-display text-[22px] italic">{hero?.title ?? "Pejzaż jesienny"}</span>
               <span className="text-[13px] text-muted">{hero ? `${hero.artist}, ${hero.dating}` : " "}</span>
             </div>
-            <VerifiedPill />
+            {hero?.verified && <VerifiedPill />}
           </figcaption>
         </figure>
       </section>
@@ -72,10 +73,10 @@ export function Home() {
               dzieł figuruje w polskiej bazie strat wojennych. Część z nich może dziś trafić na rynek, dlatego każde nowe dzieło na Rodowodzie porównujemy z tą bazą.
             </p>
             <div className="flex flex-wrap items-center gap-6">
-              <a href="https://dzielautracone.gov.pl" target="_blank" rel="noreferrer"
+              <Link to="/szukamy"
                 className="inline-flex min-h-11 items-center gap-2 text-base font-semibold text-[#E8C9A2] no-underline hover:text-white">
                 Przeglądaj zaginione dzieła <ArrowRight />
-              </a>
+              </Link>
               <span className="text-[13px] text-[#B5AC9C]">Źródło: baza strat wojennych MKiDN, dzielautracone.gov.pl</span>
             </div>
           </div>

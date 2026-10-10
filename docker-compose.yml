@@ -34,6 +34,8 @@ services:
       DATA_DIR: /data
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
       LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://kripery-project.openai.azure.com/openai/v1}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
       LOSS_MATCH_THRESHOLD: ${LOSS_MATCH_THRESHOLD:-0.85}
       DUPLICATE_MATCH_THRESHOLD: ${DUPLICATE_MATCH_THRESHOLD:-0.92}
     ports:

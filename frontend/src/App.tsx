@@ -5,7 +5,9 @@ import { AddArtwork } from "./pages/AddArtwork";
 import { ArtworkPage } from "./pages/ArtworkPage";
 import { AuctionLive } from "./pages/AuctionLive";
 import { Catalog } from "./pages/Catalog";
+import { CollectionPage, Collections } from "./pages/Collections";
 import { Home } from "./pages/Home";
+import { Lost } from "./pages/Lost";
 import { PublicPassport } from "./pages/PublicPassport";
 
 /** Scroll to #hash targets (header links) and to the top on page change. */
@@ -43,6 +45,9 @@ export default function App() {
           <Route path="/aukcje" element={<Catalog />} />
           <Route path="/dziela/:id" element={<ArtworkPage />} />
           <Route path="/dodaj" element={<AddArtwork />} />
+          <Route path="/szukamy" element={<Lost />} />
+          <Route path="/kolekcje" element={<Collections />} />
+          <Route path="/kolekcje/:userId" element={<CollectionPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
         <Route path="/dziela/:id/aukcja" element={<AuctionLive />} />
