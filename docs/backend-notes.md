@@ -141,3 +141,43 @@ registered artwork and refuses a near-identical one:
   simultaneous uploads of the same picture cannot both pass the check.
 - `types.ts` needs no change (`ApiError.detail.code` is a string); the error
   table in the spec gets the new row, and the frontend should show `message`.
+
+## 14. Azure Database for PostgreSQL Flexible Server
+
+The code runs on Azure PostgreSQL unchanged; only connection settings differ.
+
+**Connection.** Set these instead of `DATABASE_URL` (values from the server's
+Overview and Connect pages in the Azure portal):
+
+| Variable | Example |
+| --- | --- |
+| `DB_HOST` | `rodowod-db.postgres.database.azure.com` |
+| `DB_PORT` | `5432` |
+| `DB_NAME` | `rodowod` |
+| `DB_USER` | `rodowodadmin` (plain name, no `@server` suffix on Flexible Server) |
+| `DB_PASSWORD` | any characters; it is escaped for the URL |
+| `DB_SSLMODE` | `require` (default); Azure refuses connections without TLS |
+| `DB_SSLROOTCERT` | optional, path to the CA bundle when using `verify-full` |
+
+When `DB_HOST` is set it wins over `DATABASE_URL`, also inside docker compose,
+so the local `db` container can stay as it is.
+
+**One-time server setup in the portal:**
+1. *Server parameters* → `azure.extensions` → add `VECTOR` and save. Without it
+   `CREATE EXTENSION vector` at startup fails with "extension is not allow-listed".
+2. *Databases* → create `rodowod` (the server only has `postgres` by default).
+3. *Networking* → add a firewall rule for the machine or service running the
+   backend (and for your own IP to run the seed).
+4. Use port 5432, not the built-in PgBouncer on 6432: the backend sets the
+   session time zone through a startup option, which PgBouncer rejects.
+
+**Then**, with the variables exported or in `.env`:
+
+```bash
+docker compose up -d --build backend
+docker compose exec backend python -m scripts.index_lost
+docker compose exec backend python -m scripts.seed --reset
+```
+
+Tables are created on startup by the admin user. Connections are recycled
+every 30 minutes, since Azure drops long-idle ones.
