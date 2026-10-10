@@ -17,7 +17,7 @@ import { useAuctionSocket } from "../hooks/useAuctionSocket";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useNow } from "../hooks/useNow";
 import { formatCountdown, formatPln, formatStart, plural, timeAgo } from "../lib/format";
-import { roleLabel } from "../lib/labels";
+import { isFeminine, roleLabel } from "../lib/labels";
 
 export function ArtworkPage() {
   const id = Number(useParams().id);
@@ -64,7 +64,7 @@ export function ArtworkPage() {
           {art && <AuctionBox art={art} />}
           {art?.story && (
             <blockquote className="m-0 flex flex-col gap-3">
-              <span className="eyebrow">Historia od {art.owner.name.endsWith("a") ? "właścicielki" : "właściciela"}</span>
+              <span className="eyebrow">Historia od {isFeminine(art.owner.name) ? "właścicielki" : "właściciela"}</span>
               <p className="m-0 font-display text-[26px] italic leading-[1.35]">„{art.story}”</p>
               <span className="text-sm text-ink-soft">{art.owner.name}, {roleLabel(art.owner.name, art.owner.role)}</span>
             </blockquote>

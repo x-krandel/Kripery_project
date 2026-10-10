@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "../api/endpoints";
+import { attribution } from "../lib/format";
 import { ArtworkFrame } from "../components/ArtworkFrame";
 import { VerifiedPill } from "../components/Badges";
 import { CountUp } from "../components/CountUp";
@@ -55,7 +56,7 @@ export function Home() {
           <figcaption className="flex w-full max-w-[500px] flex-wrap items-start justify-between gap-4">
             <div className="flex flex-col gap-1">
               <span className="font-display text-[22px] italic">{hero?.title ?? "Pejzaż jesienny"}</span>
-              <span className="text-[13px] text-muted">{hero ? `${hero.artist}, ${hero.dating}` : " "}</span>
+              <span className="text-[13px] text-muted">{hero ? attribution({ artist: hero.artist, dating: hero.dating }) : " "}</span>
             </div>
             {hero?.verified && <VerifiedPill />}
           </figcaption>
