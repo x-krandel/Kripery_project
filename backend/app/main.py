@@ -1,5 +1,4 @@
 import asyncio
-import contextlib
 import logging
 from contextlib import asynccontextmanager
 
@@ -20,13 +19,13 @@ logging.basicConfig(level=logging.INFO)
 async def lifespan(app: FastAPI):
     await run_in_threadpool(init_db)
     await run_in_threadpool(embeddings.load_model)
-    loop_task = asyncio.create_task(auction_engine.run_loop())
+    tasks = [asyncio.create_task(auction_engine.run_loop())]
     if settings.auto_seed:
-        boot_task = asyncio.create_task(_bootstrap())  # noqa: F841 — keep a reference while running
+        tasks.append(asyncio.create_task(_bootstrap()))
     yield
-    loop_task.cancel()
-    with contextlib.suppress(asyncio.CancelledError):
-        await loop_task
+    for task in tasks:
+        task.cancel()
+    await asyncio.gather(*tasks, return_exceptions=True)
 
 
 async def _bootstrap() -> None:
