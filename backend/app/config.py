@@ -52,6 +52,16 @@ def _database_url() -> str:
     ).render_as_string(hide_password=False)
 
 
+def _origin(value: str) -> str:
+    """Browsers send Origin as scheme://host[:port] with no trailing slash; accept a bare host or a
+    copied URL with "/" at the end (https assumed, http for localhost)."""
+    o = value.strip().rstrip("/")
+    if "://" not in o:
+        local = o.startswith(("localhost", "127.0.0.1", "[::1]"))
+        o = ("http://" if local else "https://") + o
+    return o
+
+
 def _data_dir() -> Path:
     """data/ sits next to backend/ in the repo; the deploy workflow copies it into backend/."""
     if env := os.getenv("DATA_DIR"):
@@ -68,9 +78,7 @@ def _load() -> Settings:
         media_dir=Path(os.getenv("MEDIA_DIR", "/home/media" if ON_APP_SERVICE else "./media")).resolve(),
         data_dir=_data_dir(),
         cors_origins=[
-            o.strip()
-            for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
-            if o.strip()
+            _origin(o) for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if o.strip()
         ],
         llm_api_key=os.getenv("LLM_API_KEY", ""),
         # OpenAI-compatible endpoint; default: the team's Azure OpenAI resource (v1 API).

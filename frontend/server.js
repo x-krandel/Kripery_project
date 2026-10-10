@@ -11,7 +11,13 @@ import { fileURLToPath } from "node:url";
 
 const DIST = fileURLToPath(new URL("./dist", import.meta.url));
 const PORT = Number(process.env.PORT) || 8080;
-const API_URL = (process.env.API_URL || "").replace(/\/$/, "");
+// Same rule as normalizeBaseUrl() in src/api/client.ts: "host.example.net" means https://host.example.net.
+function normalizeBaseUrl(url) {
+  const u = url.trim().replace(/\/+$/, "");
+  if (!u || /^https?:\/\//i.test(u)) return u;
+  return (/^(localhost|127\.0\.0\.1|\[::1\])(:|$)/i.test(u) ? "http://" : "https://") + u;
+}
+const API_URL = normalizeBaseUrl(process.env.API_URL || "");
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",
