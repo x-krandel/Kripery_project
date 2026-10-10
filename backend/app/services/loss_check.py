@@ -11,6 +11,14 @@ from app.timeutil import utcnow
 
 TOP_K = 3
 
+REGISTRATION_TITLE = "Dodano do Rodowodu"
+_REGISTRATION = "Automatyczne porównanie z bazą strat wojennych MKiDN: "
+
+
+def registration_description(result: str) -> str:
+    """Text of the passport's registration entry for a loss-check result ("clear" or "match")."""
+    return _REGISTRATION + ("możliwe dopasowanie, publikacja wstrzymana" if result == "match" else "brak dopasowań")
+
 
 @dataclass
 class LossResult:

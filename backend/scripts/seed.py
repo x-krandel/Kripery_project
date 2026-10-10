@@ -129,9 +129,8 @@ def seed() -> int:
             for type_, occurred, title, description in history:
                 append_event(db, artwork.id, type_, occurred, title, description)
             append_event(
-                db, artwork.id, "registration", now.date().isoformat(), "Dodano do Rodowodu",
-                "Automatyczne porównanie z bazą strat wojennych MKiDN: "
-                + ("możliwe dopasowanie, publikacja wstrzymana" if check.result == "match" else "brak dopasowań"),
+                db, artwork.id, "registration", now.date().isoformat(), loss_check.REGISTRATION_TITLE,
+                loss_check.registration_description(check.result),
             )
             artworks.append(artwork)
 

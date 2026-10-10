@@ -21,11 +21,9 @@ from app.timeutil import utcnow
 
 router = APIRouter(tags=["artworks"])
 
-REGISTRATION_CLEAR = "Automatyczne porównanie z bazą strat wojennych MKiDN: brak dopasowań"
 # Serializes registrations so two uploads of the same picture cannot both pass
 # the duplicate check before either is committed.
 REGISTRATION_LOCK_KEY = 7_142_001
-REGISTRATION_MATCH = "Automatyczne porównanie z bazą strat wojennych MKiDN: możliwe dopasowanie, publikacja wstrzymana"
 
 
 def get_artwork(db, artwork_id: int) -> Artwork:
@@ -95,8 +93,8 @@ def create_artwork(db: Db, user: CurrentUser, req: CreateArtworkRequest):
         artwork.id,
         type="registration",
         occurred_on=now.date().isoformat(),
-        title="Dodano do Rodowodu",
-        description=REGISTRATION_MATCH if check.result == "match" else REGISTRATION_CLEAR,
+        title=loss_check.REGISTRATION_TITLE,
+        description=loss_check.registration_description(check.result),
     )
     db.commit()
     return views.artwork_detail(db, artwork)
