@@ -13,6 +13,7 @@ class Settings:
     cors_origins: list[str]
     llm_api_key: str
     loss_match_threshold: float
+    duplicate_match_threshold: float
 
 
 def _load() -> Settings:
@@ -29,6 +30,7 @@ def _load() -> Settings:
         ],
         llm_api_key=os.getenv("LLM_API_KEY", ""),
         loss_match_threshold=float(os.getenv("LOSS_MATCH_THRESHOLD", "0.85")),
+        duplicate_match_threshold=float(os.getenv("DUPLICATE_MATCH_THRESHOLD", "0.92")),
     )
 
 

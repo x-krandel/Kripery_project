@@ -1,7 +1,8 @@
 # Backend notes: pitfalls in the spec and how they are handled
 
-The contract is unchanged. Everything below is backend behaviour that the spec
-either leaves open or would get wrong if implemented literally.
+The DTO contract is unchanged; one error code was added (section 13).
+Everything else below is backend behaviour that the spec either leaves open
+or would get wrong if implemented literally.
 
 ## 1. Passport hashes and time zones
 
@@ -118,3 +119,25 @@ The vision LLM provider is not chosen yet. `/api/ai/describe` checks the upload
 and answers `502 AI_UNAVAILABLE`, which the frontend already handles by leaving
 the form empty. The prompt, timeout and response schema are in
 `app/services/ai_describe.py`; wiring a client is one function.
+
+## 13. Duplicate registrations (new error code)
+
+**Problem.** The spec only compares a new artwork with the war-loss database,
+so the same painting could be registered twice, also by different owners.
+
+**Fix.** `POST /api/artworks` compares the photo's CLIP vector with every
+registered artwork and refuses a near-identical one:
+
+| HTTP | code | When |
+| --- | --- | --- |
+| 409 | ARTWORK\_DUPLICATE | the photo matches an already registered artwork |
+
+- The threshold is `DUPLICATE_MATCH_THRESHOLD` (default `0.92`) and needs the
+  same calibration as the loss threshold: photos of the same work vs.
+  different works.
+- Held artworks are not counted as registered, so the red-screen demo works
+  for the same lost painting more than once.
+- Registrations are serialized with a transaction-level advisory lock, so two
+  simultaneous uploads of the same picture cannot both pass the check.
+- `types.ts` needs no change (`ApiError.detail.code` is a string); the error
+  table in the spec gets the new row, and the frontend should show `message`.
