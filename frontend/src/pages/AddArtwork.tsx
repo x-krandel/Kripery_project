@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useDropzone } from "react-dropzone";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiRequestError, mediaUrl } from "../api/client";
@@ -42,10 +42,15 @@ export function AddArtwork() {
   const [aiNote, setAiNote] = useState<string | null>(null);
   const [held, setHeld] = useState<ArtworkDetailDto | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The photo on screen right now. "Zmień zdjęcie" can leave an upload or AI request for the previous
+  // photo in flight; its late answer must not fill the form of the new one.
+  const currentFile = useRef<File | null>(null);
+  const currentUploadId = useRef<string | null>(null);
 
   const describe = useMutation({
     mutationFn: (uploadId: string) => api.describe({ uploadId }),
-    onSuccess: (d) => {
+    onSuccess: (d, uploadId) => {
+      if (uploadId !== currentUploadId.current) return;
       setForm((f) => ({ ...f, title: d.title, artist: d.artist, dating: d.dating, technique: d.technique, category: d.category }));
       setAiFields(d.aiFields);
       setAiNote(d.note);
@@ -55,11 +60,15 @@ export function AddArtwork() {
 
   const uploadM = useMutation({
     mutationFn: (f: File) => api.upload(f),
-    onSuccess: (u) => {
+    onSuccess: (u, f) => {
+      if (f !== currentFile.current) return;
+      currentUploadId.current = u.uploadId;
       setUpload(u);
       describe.mutate(u.uploadId);
     },
-    onError: (e) => setError(e instanceof ApiRequestError ? e.message : "Nie udało się wgrać zdjęcia."),
+    onError: (e, f) => {
+      if (f === currentFile.current) setError(e instanceof ApiRequestError ? e.message : "Nie udało się wgrać zdjęcia.");
+    },
   });
 
   const create = useMutation({
@@ -88,6 +97,8 @@ export function AddArtwork() {
       }
       const f = accepted[0];
       if (!f) return;
+      currentFile.current = f;
+      currentUploadId.current = null;
       setFile(f);
       setForm(EMPTY);
       setAiFields([]);
@@ -97,6 +108,8 @@ export function AddArtwork() {
   });
 
   const reset = () => {
+    currentFile.current = null;
+    currentUploadId.current = null;
     setFile(null); setUpload(null); setForm(EMPTY); setAiFields([]); setAiNote(null); setHeld(null); setError(null);
   };
 
