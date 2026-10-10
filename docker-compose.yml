@@ -1,0 +1,40 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: rodowod
+      POSTGRES_PASSWORD: rodowod
+      POSTGRES_DB: rodowod
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rodowod"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://rodowod:rodowod@db:5432/rodowod
+      MEDIA_DIR: /app/media
+      DATA_DIR: /data
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LOSS_MATCH_THRESHOLD: ${LOSS_MATCH_THRESHOLD:-0.85}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/media:/app/media
+      - ./data:/data:ro
+      # CLIP weights are downloaded once and survive rebuilds.
+      - hfcache:/cache/huggingface
+
+volumes:
+  pgdata:
+  hfcache:
