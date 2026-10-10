@@ -28,44 +28,73 @@ const TYPES = {
   ".txt": "text/plain; charset=utf-8",
 };
 
+/** Path inside dist/ for a URL path; undefined if it does not exist, null if it escapes dist/. */
 async function fileAt(urlPath) {
-  const rel = normalize(decodeURIComponent(urlPath)).replace(/^([/\\])+/, "");
+  const rel = normalize(urlPath).replace(/^([/\\])+/, "");
   const full = join(DIST, rel);
   if (full !== DIST && !full.startsWith(DIST + sep)) return null; // no ../ escapes
   try {
     const s = await stat(full);
-    return s.isFile() ? full : null;
+    return s.isFile() ? full : undefined;
   } catch {
-    return null;
+    return undefined;
   }
 }
 
-function send(res, path, cache) {
+function send(req, res, path, cache) {
   res.writeHead(200, { "Content-Type": TYPES[extname(path)] ?? "application/octet-stream", "Cache-Control": cache });
-  createReadStream(path).pipe(res);
+  if (req.method === "HEAD") {
+    res.end();
+    return;
+  }
+  createReadStream(path)
+    .on("error", () => res.destroy())
+    .pipe(res);
 }
 
-createServer(async (req, res) => {
-  const { pathname } = new URL(req.url ?? "/", "http://localhost");
+function plain(res, status, text) {
+  res.writeHead(status, { "Content-Type": TYPES[".txt"] }).end(text);
+}
+
+createServer((req, res) => {
+  handle(req, res).catch((err) => {
+    console.error(err);
+    if (res.headersSent) res.destroy();
+    else plain(res, 500, "Internal error");
+  });
+}).listen(PORT, () => {
+  console.log(`Rodowód frontend on :${PORT}, API ${API_URL || "(from build: VITE_API_URL)"}`);
+});
+
+async function handle(req, res) {
   if (req.method !== "GET" && req.method !== "HEAD") {
-    res.writeHead(405).end();
+    res.writeHead(405, { Allow: "GET, HEAD" }).end();
+    return;
+  }
+  let pathname;
+  try {
+    pathname = decodeURIComponent(new URL(req.url ?? "/", "http://localhost").pathname);
+  } catch {
+    plain(res, 400, "Bad request"); // malformed escapes such as /%E0
     return;
   }
   if (pathname === "/env.js" && API_URL) {
     res.writeHead(200, { "Content-Type": TYPES[".js"], "Cache-Control": "no-cache" });
-    res.end(`window.__RODOWOD__ = { apiUrl: ${JSON.stringify(API_URL)} };\n`);
+    res.end(req.method === "HEAD" ? undefined : `window.__RODOWOD__ = { apiUrl: ${JSON.stringify(API_URL)} };\n`);
     return;
   }
   const file = await fileAt(pathname);
+  if (file === null) {
+    plain(res, 400, "Bad request");
+    return;
+  }
   if (file) {
-    send(res, file, pathname.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache");
+    send(req, res, file, pathname.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache");
     return;
   }
   if (extname(pathname)) {
-    res.writeHead(404, { "Content-Type": TYPES[".txt"] }).end("Not found");
+    plain(res, 404, "Not found");
     return;
   }
-  send(res, join(DIST, "index.html"), "no-cache"); // SPA route
-}).listen(PORT, () => {
-  console.log(`Rodowód frontend on :${PORT}, API ${API_URL || "(from build: VITE_API_URL)"}`);
-});
+  send(req, res, join(DIST, "index.html"), "no-cache"); // SPA route
+}
