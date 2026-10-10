@@ -20,33 +20,45 @@ from app.timeutil import utcnow
 
 USERS = [(1, "Anna", "collector"), (2, "Piotr", "buyer"), (3, "Ewa", "buyer")]
 
-# Titles must match the catalog on the approved design concepts; replace the
-# placeholders below once they are copied from there. image = file in data/demo/.
+# Same catalog as the approved design concepts (and frontend/src/api/mocks.ts).
+# image = file in data/demo/ (placeholders until real public-domain works are added).
+# Optional "history": (type, occurred_on, title, description) instead of the generic HISTORY.
 ARTWORKS = [
-    dict(image="01.jpg", owner=1, title="Pejzaż z Tatr", artist="Szkoła polska", dating="ok. 1895",
+    dict(image="01.jpg", owner=1, title="Portret damy w czerni", artist="Szkoła polska", dating="ok. 1895",
          technique="olej na płótnie", category="painting", dimensions="64 × 48 cm",
-         story="Obraz przez trzy pokolenia wisiał w domu rodzinnym pod Krakowem."),
-    dict(image="02.jpg", owner=1, title="Portret kobiety w czepku", artist="Autor nieznany", dating="ok. 1860",
-         technique="olej na desce", category="painting", dimensions="42 × 34 cm",
-         story="Zakupiony na aukcji w Warszawie w 1978 roku."),
-    dict(image="03.jpg", owner=1, title="Martwa natura z dzbanem", artist="Szkoła polska", dating="1912",
-         technique="olej na tekturze", category="painting", dimensions="50 × 40 cm",
-         story="Sygnowany monogramem w lewym dolnym rogu."),
-    dict(image="04.jpg", owner=1, title="Ulica w Kazimierzu", artist="Szkoła polska", dating="ok. 1930",
-         technique="akwarela na papierze", category="works_on_paper", dimensions="30 × 22 cm",
-         story="Pamiątka z pleneru malarskiego nad Wisłą."),
-    dict(image="05.jpg", owner=1, title="Studium konia", artist="Autor nieznany", dating="XIX w.",
-         technique="ołówek na papierze", category="works_on_paper", dimensions="24 × 18 cm",
-         story="Rysunek odnaleziony w tece po dziadku."),
-    dict(image="06.jpg", owner=1, title="Głowa chłopca", artist="Szkoła polska", dating="ok. 1925",
-         technique="brąz patynowany", category="sculpture", dimensions="wys. 28 cm",
-         story="Odlew z pracowni warszawskiej."),
-    dict(image="07.jpg", owner=2, title="Zachód słońca nad Wisłą", artist="Szkoła polska", dating="1948",
-         technique="olej na płótnie", category="painting", dimensions="70 × 50 cm",
-         story="Kupiony od rodziny artysty."),
-    dict(image="08.jpg", owner=3, title="Kompozycja abstrakcyjna", artist="Autor nieznany", dating="1967",
-         technique="gwasz na papierze", category="works_on_paper", dimensions="35 × 25 cm",
-         story="Praca z okresu studiów na ASP."),
+         story="Obraz wisiał w salonie mojej prababci w Krakowie. Po wojnie przyjechał z rodziną do Wrocławia, "
+               "owinięty w koc, razem z albumem zdjęć.",
+         history=[
+             ("creation", "1895", "Obraz powstaje w Krakowie",
+              "Sygnatura i data na odwrocie płótna. Zdjęcie odwrocia w załączniku."),
+             ("exhibition", "1912", "Wystawa salonowa w Krakowie",
+              "Wzmianka w katalogu wystawy. Skan strony katalogu w załączniku."),
+             ("ownership_change", "1968", "Zakup do kolekcji rodzinnej",
+              "Odręczny rachunek sprzedaży. Obraz trafia do rodziny obecnej właścicielki."),
+             ("conservation", "2019", "Oczyszczenie werniksu i dublowanie płótna",
+              "Protokół konserwatorski (PDF) z opisem zakresu prac."),
+         ]),
+    dict(image="02.jpg", owner=1, title="Widok na Odrę", artist="Szkoła wrocławska", dating="ok. 1910",
+         technique="olej na desce", category="painting", dimensions="38 × 52 cm",
+         story="Kupiony na pchlim targu przy Hali Targowej w latach 90."),
+    dict(image="03.jpg", owner=1, title="Pejzaż jesienny", artist="Szkoła polska", dating="ok. 1880",
+         technique="olej na płótnie", category="painting", dimensions="72 × 90 cm",
+         story="Pamiątka rodzinna, przez lata wisiała w dworku pod Kaliszem."),
+    dict(image="04.jpg", owner=1, title="Martwa natura z dzbanem", artist="Malarz nieznany", dating="XIX w.",
+         technique="olej na płótnie", category="painting", dimensions="46 × 38 cm",
+         story="Obraz z kolekcji dziadka, sygnatura nieczytelna."),
+    dict(image="05.jpg", owner=1, title="Kamienice przy rynku", artist="Szkoła polska", dating="ok. 1925",
+         technique="gwasz na papierze", category="works_on_paper", dimensions="30 × 42 cm",
+         story="Gwasz kupiony w antykwariacie w Krakowie w 2004 roku."),
+    dict(image="06.jpg", owner=1, title="Studium głowy kobiety", artist="Krąg akademicki", dating="ok. 1900",
+         technique="węgiel na papierze", category="works_on_paper", dimensions="48 × 36 cm",
+         story="Rysunek z teki studenckiej, przechowywany w passe-partout."),
+    dict(image="07.jpg", owner=2, title="Owoce na cynowym talerzu", artist="Malarz nieznany", dating="ok. 1870",
+         technique="olej na płótnie", category="painting", dimensions="40 × 50 cm",
+         story="Obraz odziedziczony po ciotce z Lwowa."),
+    dict(image="08.jpg", owner=3, title="Łąka przed burzą", artist="Szkoła polska", dating="ok. 1905",
+         technique="olej na tekturze", category="painting", dimensions="33 × 41 cm",
+         story="Mały format, malowany prawdopodobnie w plenerze."),
 ]
 
 HISTORY = [
@@ -106,8 +118,11 @@ def seed() -> None:
             db.add(artwork)
             db.flush()
             # 1 to 4 historical events, then registration: 2 to 5 in total.
-            for type_, title, description in HISTORY[: 1 + i % len(HISTORY)]:
-                occurred = spec["dating"] if type_ == "creation" else ""
+            history = spec.get("history") or [
+                (type_, spec["dating"] if type_ == "creation" else "", title, description)
+                for type_, title, description in HISTORY[: 1 + i % len(HISTORY)]
+            ]
+            for type_, occurred, title, description in history:
                 append_event(db, artwork.id, type_, occurred, title, description)
             append_event(
                 db, artwork.id, "registration", now.date().isoformat(), "Dodano do Rodowodu",
