@@ -27,8 +27,9 @@ export interface Api {
   getAuction(id: number): Promise<AuctionDetailDto>;
   placeBid(id: number, req: PlaceBidRequest): Promise<BidDto>;
   listLost(limit?: number): Promise<LostArtworkDto[]>;
-  /** Opens the auction stream; returns a function that closes it. `onClose` fires on unexpected disconnect. */
-  subscribeAuction(id: number, onMessage: AuctionListener, onClose?: () => void): () => void;
+  /** Opens the auction stream; returns a function that closes it. `onClose` fires on unexpected
+   *  disconnect with the close code (4404: no such auction). */
+  subscribeAuction(id: number, onMessage: AuctionListener, onClose?: (code: number) => void): () => void;
 }
 
 const realApi: Api = {
@@ -63,8 +64,8 @@ const realApi: Api = {
         /* ignore malformed frames */
       }
     };
-    ws.onclose = () => {
-      if (!closedByUs) onClose?.();
+    ws.onclose = (ev) => {
+      if (!closedByUs) onClose?.(ev.code);
     };
     return () => {
       closedByUs = true;

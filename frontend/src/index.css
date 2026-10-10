@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Design tokens — the same values as the approved Claude Design concepts. */
+/* Design tokens: the same values as the approved Claude Design concepts. */
 @theme {
   --color-ground: #F6F3EE;
   --color-surface: #FFFFFF;

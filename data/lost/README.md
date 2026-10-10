@@ -1,6 +1,6 @@
 # Датасет военных потерь
 
-`lost.csv` — одна строка на объект из базы strat wojennych MKiDN (dzielautracone.gov.pl):
+`lost.csv`: одна строка на объект из базы strat wojennych MKiDN (dzielautracone.gov.pl):
 
 | колонка | пример |
 | --- | --- |

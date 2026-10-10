@@ -10,11 +10,12 @@ import { Avatar } from "../components/Avatar";
 import { useAuctionSocket } from "../hooks/useAuctionSocket";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useNow } from "../hooks/useNow";
-import { formatCountdown, formatPln, secondsLeft, timeAgo } from "../lib/format";
+import { attribution, formatCountdown, formatPln, secondsLeft, timeAgo } from "../lib/format";
+import { isFeminine } from "../lib/labels";
 
 const STEPS = [100, 500, 1000];
 
-/** Mobile-first live auction — the screen shown on two phones on stage. */
+/** Mobile-first live auction: the screen shown on two phones on stage. */
 export function AuctionLive() {
   const id = Number(useParams().id);
   const { userId, user } = useCurrentUser();
@@ -77,7 +78,7 @@ export function AuctionLive() {
         <div className="flex min-w-0 flex-col gap-0.5 lg:gap-2">
           <span className="hidden text-xs font-bold uppercase tracking-[0.12em] text-muted lg:block">Aukcja na żywo</span>
           <span className="font-display text-[26px] leading-[1.1] lg:text-[44px] lg:font-medium lg:leading-[1.02]">{art?.title ?? "…"}</span>
-          <span className="text-[13px] text-muted lg:text-base lg:text-ink-soft">{art ? `${art.artist}, ${art.dating}` : ""}</span>
+          <span className="text-[13px] text-muted lg:text-base lg:text-ink-soft">{art ? attribution({ artist: art.artist, dating: art.dating }) : ""}</span>
         </div>
         {art?.verified && (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-ok-tint px-2.5 py-1 text-xs font-bold text-ok lg:mt-6 lg:px-3 lg:py-1.5 lg:text-sm">
@@ -119,7 +120,7 @@ export function AuctionLive() {
               <div className="flex flex-col gap-0.5">
                 <span className="text-xs text-muted lg:text-sm">{auction && auction.bidCount > 0 ? "Aktualna oferta" : "Cena wywoławcza"}</span>
                 <span key={auction?.currentPrice} aria-live="polite" className="animate-bump text-[34px] font-bold leading-[1.1] tracking-[-0.01em] lg:text-[44px]">
-                  {auction ? formatPln(auction.currentPrice) : "—"}
+                  {auction ? formatPln(auction.currentPrice) : "–"}
                 </span>
                 {youLead ? (
                   <span className="mt-1 self-start rounded-full bg-ok-tint px-2.5 py-0.5 text-xs font-bold text-ok">Prowadzisz</span>
@@ -169,7 +170,7 @@ export function AuctionLive() {
             <div className="flex w-full max-w-[440px] flex-col gap-4 rounded-3xl bg-surface p-7 text-center">
               {ended.winner?.id === userId ? (
                 <>
-                  <span className="font-display text-4xl font-semibold leading-none text-accent">{user?.name.endsWith("a") ? "Wygrałaś!" : "Wygrałeś!"}</span>
+                  <span className="font-display text-4xl font-semibold leading-none text-accent">{user && isFeminine(user.name) ? "Wygrałaś!" : "Wygrałeś!"}</span>
                   <span className="text-[15px] text-ink-soft">Dzieło trafia do Twojej kolekcji za {formatPln(ended.finalPrice)}. Nowy wpis jest już w paszporcie.</span>
                 </>
               ) : (

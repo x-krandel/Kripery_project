@@ -1,4 +1,4 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { mediaUrl } from "../api/client";
 import { api } from "../api/endpoints";
@@ -19,15 +19,16 @@ function possessive(name: string): string {
   return name + "a";
 }
 
-/** B8 — list of private collections. */
+/** B8: list of private collections. */
 export function Collections() {
   const { data: users = [], isLoading: usersLoading } = useQuery({ queryKey: ["users"], queryFn: api.listUsers });
-  const queries = useQueries({
-    queries: users.map((u) => ({ queryKey: ["artworks", "owner", u.id], queryFn: () => api.listArtworks(u.id) })),
-  });
-  const loading = usersLoading || queries.some((q) => q.isLoading);
+  // One catalog request (shared cache with Home and Catalog), grouped by owner.
+  const { data: works, isLoading: worksLoading } = useQuery({ queryKey: ["artworks"], queryFn: () => api.listArtworks() });
+  const loading = usersLoading || worksLoading;
+  const byOwner = new Map<number, ArtworkSummaryDto[]>();
+  for (const a of publicWorks(works)) byOwner.set(a.ownerId, [...(byOwner.get(a.ownerId) ?? []), a]);
   const collections = users
-    .map((u, i) => ({ user: u, works: publicWorks(queries[i]?.data) }))
+    .map((u) => ({ user: u, works: byOwner.get(u.id) ?? [] }))
     .filter((c) => c.works.length > 0);
 
   return (
@@ -78,7 +79,7 @@ function CollectionCard({ user, works }: { user: UserDto; works: ArtworkSummaryD
   );
 }
 
-/** B8 — one collection shown as a virtual exhibition. */
+/** B8: one collection shown as a virtual exhibition. */
 export function CollectionPage() {
   const userId = Number(useParams().userId);
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: api.listUsers });

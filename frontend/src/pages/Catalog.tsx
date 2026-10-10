@@ -66,10 +66,13 @@ export function Catalog() {
               : `${visible.length} ${plural(visible.length, "lot", "loty", "lotów")} · licytacje kończą się co kilka godzin`}
           </p>
         </div>
-        <p className="m-0 inline-flex max-w-[460px] items-center gap-2.5 rounded-xl bg-ok-tint px-4 py-3 text-sm font-semibold leading-snug text-ok">
-          <ShieldCheck size={20} className="shrink-0" />
-          Każdy lot przeszedł automatyczną weryfikację w bazie strat wojennych MKiDN.
-        </p>
+        {view === "auctions" && (
+          // Only true for the public catalog: "Moja kolekcja" may contain held works.
+          <p className="m-0 inline-flex max-w-[460px] items-center gap-2.5 rounded-xl bg-ok-tint px-4 py-3 text-sm font-semibold leading-snug text-ok">
+            <ShieldCheck size={20} className="shrink-0" />
+            Każdy lot przeszedł automatyczną weryfikację w bazie strat wojennych MKiDN.
+          </p>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Widok">

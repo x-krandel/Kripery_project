@@ -4,6 +4,7 @@ import logging
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import get_args
 
 from pydantic import BaseModel, ValidationError
 
@@ -12,7 +13,7 @@ from app.schemas import AiDescriptionDto, ArtworkCategory
 
 TIMEOUT_SECONDS = 15
 
-CATEGORIES = ("painting", "works_on_paper", "sculpture", "other")
+CATEGORIES = get_args(ArtworkCategory)
 
 log = logging.getLogger(__name__)
 

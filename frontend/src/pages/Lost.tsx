@@ -6,7 +6,7 @@ import { External, Search, ShieldCheck } from "../components/Icons";
 import { LotCardSkeleton } from "../components/Skeleton";
 import { plural } from "../lib/format";
 
-/** C5 — "Szukamy": war losses from the MKiDN database that the platform watches for. */
+/** C5, "Szukamy": war losses from the MKiDN database that the platform watches for. */
 export function Lost() {
   const { data, isLoading, isError } = useQuery({ queryKey: ["lost"], queryFn: () => api.listLost(60) });
   const items = data ?? [];

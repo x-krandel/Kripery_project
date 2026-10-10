@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.errors import NOT_FOUND_ARTWORK, NOT_FOUND_AUCTION, api_error, format_pln, not_found, not_owner
 from app.models import Artwork, Auction, Bid, User
-from app.schemas import BidDto, UserDto, WsBid, WsEnded
+from app.schemas import UserDto, WsBid, WsEnded
 from app.services import views
 from app.services.hashing import append_event
 from app.services.ws_hub import hub
@@ -89,13 +89,7 @@ def place_bid(db: Session, user: User, auction_id: int, amount: int) -> WsBid:
     db.commit()
 
     return WsBid(
-        bid=BidDto(
-            id=bid.id,
-            auction_id=auction.id,
-            user=UserDto.model_validate(user),
-            amount=bid.amount,
-            created_at=bid.created_at,
-        ),
+        bid=views.bid_dto(bid, user),
         current_price=auction.current_price,
         bid_count=auction.bid_count,
         ends_at=auction.ends_at,

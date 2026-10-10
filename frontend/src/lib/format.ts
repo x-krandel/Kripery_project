@@ -11,7 +11,7 @@ export function shortHash(hash: string): string {
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** "02:41", "1:12:30", "2 dni" — time left until `endsAt`. */
+/** "02:41", "1:12:30", "2 dni": time left until `endsAt`. */
 export function formatCountdown(endsAt: string, now: number): string {
   const ms = Math.max(0, new Date(endsAt).getTime() - now);
   const total = Math.floor(ms / 1000);

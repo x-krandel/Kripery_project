@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { Close } from "./Icons";
 
-/** Native <dialog> — focus trap, Esc and backdrop for free. */
+/** Native <dialog>: focus trap, Esc and backdrop for free. */
 export function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
 

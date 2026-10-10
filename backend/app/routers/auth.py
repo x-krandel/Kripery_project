@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Header, Response
+from fastapi import APIRouter, Response
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 
-from app.deps import CurrentUser, Db
+from app.deps import AuthorizationHeader, CurrentUser, Db, bearer_token
 from app.errors import api_error
 from app.models import AuthToken, User
 from app.schemas import AuthResponse, LoginRequest, RegisterRequest, UserDto
@@ -61,8 +61,7 @@ def me(user: CurrentUser):
 
 
 @router.post("/logout", status_code=204)
-def logout(db: Db, user: CurrentUser, authorization: str | None = Header(default=None)):
-    _, _, token = (authorization or "").partition(" ")
-    db.execute(delete(AuthToken).where(AuthToken.token_hash == token_hash(token.strip())))
+def logout(db: Db, user: CurrentUser, authorization: AuthorizationHeader = None):
+    db.execute(delete(AuthToken).where(AuthToken.token_hash == token_hash(bearer_token(authorization) or "")))
     db.commit()
     return Response(status_code=204)

@@ -31,8 +31,13 @@ export const ROLE_LABEL: Record<UserRole, string> = {
   buyer: "kupujący",
 };
 
-/** Role label with the right Polish gender for our three demo users. */
+/** Polish female first names end in -a (Anna, Ewa); good enough to pick word forms for the demo users. */
+export function isFeminine(name: string): boolean {
+  return name.endsWith("a");
+}
+
+/** Role label in the right Polish gender. */
 export function roleLabel(name: string, role: UserRole): string {
-  if (role === "collector") return name.endsWith("a") ? "kolekcjonerka" : "kolekcjoner";
-  return name.endsWith("a") ? "kupująca" : "kupujący";
+  if (role === "collector") return isFeminine(name) ? "kolekcjonerka" : "kolekcjoner";
+  return isFeminine(name) ? "kupująca" : "kupujący";
 }

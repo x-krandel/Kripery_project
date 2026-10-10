@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { WS_CLOSE_NOT_FOUND } from "../api/client";
 import { api } from "../api/endpoints";
-import type { AuctionDetailDto, BidDto, UserDto } from "../api/types";
+import type { AuctionDetailDto, AuctionWsMessage, BidDto, UserDto } from "../api/types";
 
 export interface AuctionEnded {
   winner: UserDto | null;
@@ -14,10 +15,33 @@ export interface AuctionSocketState {
   connected: boolean;
 }
 
-/** Live auction state: snapshot on connect, then bids and the end. Reconnects after 1 s.
- *  `resync()` reconnects to get a fresh snapshot (used after BID_TOO_LOW). */
+/** State tagged with the auction it belongs to, so a new auctionId never shows the previous auction. */
+interface Tagged extends AuctionSocketState {
+  auctionId: number | null;
+}
+
+const MAX_BIDS = 10;
+const empty = (auctionId: number | null): Tagged => ({ auctionId, auction: null, lastBid: null, ended: null, connected: false });
+
+function applyBid(s: Tagged, msg: Extract<AuctionWsMessage, { type: "bid" }>): Tagged {
+  if (!s.auction) return s;
+  // Bid broadcasts can arrive out of order (two near-simultaneous bids): keep every bid in the list,
+  // but move price, leader and timer forward only.
+  const bids = s.auction.bids.some((b) => b.id === msg.bid.id) ? s.auction.bids : [msg.bid, ...s.auction.bids];
+  const sorted = [...bids].sort((a, b) => b.id - a.id).slice(0, MAX_BIDS);
+  if (msg.bidCount <= s.auction.bidCount) return { ...s, auction: { ...s.auction, bids: sorted } };
+  return {
+    ...s,
+    lastBid: msg.bid,
+    auction: { ...s.auction, currentPrice: msg.currentPrice, bidCount: msg.bidCount, endsAt: msg.endsAt, leader: msg.bid.user, bids: sorted },
+  };
+}
+
+/** Live auction state: snapshot on connect, then bids and the end. Reconnects after 1 s unless the
+ *  auction is over or does not exist (close code 4404). `resync()` reconnects to get a fresh snapshot
+ *  (used after BID_TOO_LOW). */
 export function useAuctionSocket(auctionId: number | null): AuctionSocketState & { resync: () => void } {
-  const [state, setState] = useState<AuctionSocketState>({ auction: null, lastBid: null, ended: null, connected: false });
+  const [state, setState] = useState<Tagged>(() => empty(auctionId));
   const [nonce, setNonce] = useState(0);
   const endedRef = useRef(false);
   const resync = useCallback(() => setNonce((n) => n + 1), []);
@@ -27,6 +51,8 @@ export function useAuctionSocket(auctionId: number | null): AuctionSocketState &
     let close: (() => void) | null = null;
     let retry: ReturnType<typeof setTimeout> | null = null;
     let alive = true;
+    endedRef.current = false;
+    const update = (fn: (s: Tagged) => Tagged) => setState((s) => fn(s.auctionId === auctionId ? s : empty(auctionId)));
 
     const connect = () => {
       close = api.subscribeAuction(
@@ -34,32 +60,21 @@ export function useAuctionSocket(auctionId: number | null): AuctionSocketState &
         (msg) => {
           if (msg.type === "snapshot") {
             endedRef.current = msg.auction.status === "ended";
-            setState((s) => ({ ...s, auction: msg.auction, connected: true }));
+            update((s) => ({ ...s, auction: msg.auction, connected: true }));
           } else if (msg.type === "bid") {
-            setState((s) => ({
-              ...s,
-              lastBid: msg.bid,
-              auction: s.auction && {
-                ...s.auction,
-                currentPrice: msg.currentPrice,
-                bidCount: msg.bidCount,
-                endsAt: msg.endsAt,
-                leader: msg.bid.user,
-                bids: [msg.bid, ...s.auction.bids.filter((b) => b.id !== msg.bid.id)].slice(0, 10),
-              },
-            }));
+            update((s) => applyBid(s, msg));
           } else {
             endedRef.current = true;
-            setState((s) => ({
+            update((s) => ({
               ...s,
               ended: { winner: msg.winner, finalPrice: msg.finalPrice },
               auction: s.auction && { ...s.auction, status: "ended", currentPrice: msg.finalPrice },
             }));
           }
         },
-        () => {
-          setState((s) => ({ ...s, connected: false }));
-          if (alive && !endedRef.current) retry = setTimeout(connect, 1000);
+        (code) => {
+          update((s) => ({ ...s, connected: false }));
+          if (alive && !endedRef.current && code !== WS_CLOSE_NOT_FOUND) retry = setTimeout(connect, 1000);
         },
       );
     };
@@ -72,5 +87,6 @@ export function useAuctionSocket(auctionId: number | null): AuctionSocketState &
     };
   }, [auctionId, nonce]);
 
-  return { ...state, resync };
+  const { auctionId: _forId, ...current } = state.auctionId === auctionId ? state : empty(auctionId);
+  return { ...current, resync };
 }

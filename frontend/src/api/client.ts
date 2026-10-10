@@ -1,8 +1,18 @@
 // Thin fetch wrapper: base URL, login token, contract error format.
 
+/** "host.example.net" → "https://host.example.net" (http for localhost); no trailing slash. A base URL
+ *  without a scheme would be treated as a path on the frontend's own host. */
+export function normalizeBaseUrl(url: string): string {
+  const u = url.trim().replace(/\/+$/, "");
+  if (!u || /^https?:\/\//i.test(u)) return u;
+  return (/^(localhost|127\.0\.0\.1|\[::1\])(:|$)/i.test(u) ? "http://" : "https://") + u;
+}
+
 // Runtime /env.js (production server) wins over the build-time VITE_API_URL.
-export const API_URL: string = (window.__RODOWOD__?.apiUrl || import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
+export const API_URL: string = normalizeBaseUrl(window.__RODOWOD__?.apiUrl || import.meta.env.VITE_API_URL || "http://localhost:8000");
 export const USE_MOCKS: boolean = import.meta.env.VITE_USE_MOCKS === "true";
+/** WebSocket close code from the backend when the auction does not exist (e.g. after seed --reset). */
+export const WS_CLOSE_NOT_FOUND = 4404;
 
 let authToken: string | null = null;
 
