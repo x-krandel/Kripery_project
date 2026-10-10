@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/* Design tokens — the same values as the approved Claude Design concepts. */
+@theme {
+  --color-ground: #F6F3EE;
+  --color-surface: #FFFFFF;
+  --color-ink: #17140F;
+  --color-ink-soft: #4A443B;
+  --color-muted: #5E574C;
+  --color-faint: #8C8476;
+  --color-line: #E4DED3;
+  --color-line-strong: #D9D1C3;
+  --color-chip: #EFE9DF;
+  --color-accent: #6E1A26;
+  --color-accent-dark: #4E101A;
+  --color-brass: #7A5F30;
+  --color-brass-tint: #F1EADC;
+  --color-ok: #1F6B45;
+  --color-ok-tint: #E6F0E9;
+  --color-alert: #A8291F;
+  --color-alert-tint: #F8E7E4;
+
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Manrope", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --animate-toast-in: toast-in 0.25s ease-out;
+  --animate-bump: bump 0.5s ease-out;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bump {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.06); color: var(--color-accent); }
+  100% { transform: scale(1); }
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+}
+
+/* Custom utilities (Tailwind 4: @utility can be combined with other classes and variants). */
+@utility eyebrow {
+  @apply text-[13px] font-bold uppercase tracking-[0.16em] text-brass;
+}
+@utility container-page {
+  @apply mx-auto w-full max-w-[1280px] px-5 sm:px-8;
+}
+@utility btn {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-semibold no-underline transition-colors;
+}
+@utility btn-primary {
+  @apply btn bg-accent text-white hover:bg-accent-dark;
+}
+@utility btn-dark {
+  @apply btn bg-ink text-ground hover:bg-black;
+}
+@utility btn-outline {
+  @apply btn border border-ink text-ink hover:bg-ink hover:text-ground;
+}
+@utility btn-quiet {
+  @apply btn border border-line-strong bg-surface text-ink hover:border-ink;
+}
+@utility field {
+  @apply min-h-12 w-full rounded-xl border border-line-strong bg-surface px-4 text-base text-ink outline-none focus:border-accent;
+}
