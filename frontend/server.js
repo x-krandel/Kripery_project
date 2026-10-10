@@ -96,5 +96,10 @@ async function handle(req, res) {
     plain(res, 404, "Not found");
     return;
   }
-  send(req, res, join(DIST, "index.html"), "no-cache"); // SPA route
+  const index = await fileAt("/index.html");
+  if (!index) {
+    plain(res, 503, "dist/ is missing: run npm run build first");
+    return;
+  }
+  send(req, res, index, "no-cache"); // SPA route
 }

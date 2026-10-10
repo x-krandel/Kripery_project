@@ -56,6 +56,10 @@ npm run dev            # http://localhost:5173
 
 Без бэкенда, на моках: `VITE_USE_MOCKS=true npm run dev`.
 
+## One command (production build)
+
+`docker compose up -d --build` also starts the frontend as a production build (`frontend/Dockerfile`: Vite build + `server.js`) on http://localhost:8080. The browser calls the API at http://localhost:8000 (change with `FRONTEND_API_URL`). The backend allows both origins by default; if your `.env` sets `CORS_ORIGINS`, it must include `http://localhost:8080`. Seed as above, then open http://localhost:8080. For development with hot reload keep using `npm run dev` on 5173.
+
 ## Сценарии для проверки
 
 - Каталог и паспорт: `/aukcje`, `/dziela/1`, публичный паспорт `/p/1`.

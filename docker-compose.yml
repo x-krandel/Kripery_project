@@ -32,7 +32,7 @@ services:
       DB_SSLROOTCERT: ${DB_SSLROOTCERT:-}
       MEDIA_DIR: /app/media
       DATA_DIR: /data
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:8080}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://kripery-project.openai.azure.com/openai/v1}
       LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
@@ -45,6 +45,16 @@ services:
       - ./data:/data:ro
       # CLIP weights are downloaded once and survive rebuilds.
       - hfcache:/cache/huggingface
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    environment:
+      # The browser calls the API itself, so this is the address on your machine, not http://backend:8000.
+      API_URL: ${FRONTEND_API_URL:-http://localhost:8000}
+    ports:
+      - "8080:8080"
 
 volumes:
   pgdata:
