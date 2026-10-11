@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, External, Search, ShieldCheck } from "../compone
 import { LotCardSkeleton } from "../components/Skeleton";
 import { plural } from "../lib/format";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 48;
 
 /** C5, "Szukamy": war losses from the MKiDN database that the platform watches for. */
 export function Lost() {
