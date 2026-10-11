@@ -14,7 +14,8 @@ from app.schemas import AiDescriptionDto, ArtworkCategory
 
 TIMEOUT_SECONDS = 30
 # Generous: reasoning models (and Gemini 3) spend part of the budget on thinking before the JSON.
-MAX_TOKENS = 1500
+# When thinking eats the whole budget the answer comes back empty.
+MAX_TOKENS = 4096
 
 CATEGORIES = get_args(ArtworkCategory)
 
@@ -110,6 +111,10 @@ def _ask_llm(image_path: Path) -> dict:
         "response_format": {"type": "json_object"},
         "max_completion_tokens": MAX_TOKENS,
     }
+    if "gemini" in settings.llm_model.lower():
+        # Gemini 3 cannot switch thinking off; by default it may think long enough to time out
+        # or to use up MAX_TOKENS. "low" is plenty for cataloguing one photo.
+        body["reasoning_effort"] = "low"
     try:
         payload = _post(body)
     except urllib.error.HTTPError as e:
@@ -126,7 +131,12 @@ def _ask_llm(image_path: Path) -> dict:
             }],
             "max_tokens": MAX_TOKENS,
         })
-    return parse_json_answer(payload["choices"][0]["message"]["content"])
+    choice = payload["choices"][0]
+    content = choice["message"].get("content")
+    if not (content or "").strip():
+        # Usually the token budget went to thinking (finish_reason "length").
+        raise ValueError(f"empty answer, finish_reason={choice.get('finish_reason')!r}, usage={payload.get('usage')}")
+    return parse_json_answer(content)
 
 
 def describe(image_path: Path) -> AiDescriptionDto:
