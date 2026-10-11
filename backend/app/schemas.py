@@ -124,6 +124,15 @@ class LostArtworkDto(CamelModel):
     image_url: str
 
 
+class StatsDto(CamelModel):
+    """Live numbers for the home page, all counted from the database."""
+    artworks: int  # published works with a passport
+    passport_entries: int  # entries in the hash chains of published works
+    collectors: int  # owners of at least one published work
+    auction_volume: int  # sum of the current or final price of auctions with bids, PLN
+    lost_indexed: int  # war-loss records the loss check compares against
+
+
 class UploadDto(CamelModel):
     upload_id: str
     image_url: str

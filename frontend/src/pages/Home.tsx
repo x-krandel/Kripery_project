@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "../api/endpoints";
-import { attribution } from "../lib/format";
+import { attribution, plural } from "../lib/format";
 import { ArtworkFrame } from "../components/ArtworkFrame";
 import { VerifiedPill } from "../components/Badges";
 import { CountUp } from "../components/CountUp";
@@ -17,6 +17,7 @@ const STEPS = [
 
 export function Home() {
   const { data, isLoading } = useQuery({ queryKey: ["artworks"], queryFn: () => api.listArtworks() });
+  const { data: stats } = useQuery({ queryKey: ["stats"], queryFn: api.stats });
   const live = (data ?? [])
     .filter((a) => a.auction?.status === "live")
     .sort((a, b) => new Date(a.auction!.endsAt).getTime() - new Date(b.auction!.endsAt).getTime())
@@ -62,6 +63,27 @@ export function Home() {
           </figcaption>
         </figure>
       </section>
+
+      {/* Platform in numbers: everything is counted live from the database */}
+      {stats && stats.artworks > 0 && (
+        <section aria-label="Rodowód w liczbach" className="border-y border-line bg-surface">
+          <dl className="container-page m-0 grid grid-cols-2 gap-x-8 gap-y-10 py-14 lg:grid-cols-4">
+            {[
+              { value: stats.artworks, label: `${plural(stats.artworks, "dzieło", "dzieła", "dzieł")} z paszportem pochodzenia` },
+              { value: stats.passportEntries, label: `${plural(stats.passportEntries, "wpis", "wpisy", "wpisów")} w łańcuchach SHA‑256` },
+              { value: stats.auctionVolume, label: "w ofertach na licytacjach", suffix: " zł" },
+              { value: stats.collectors, label: plural(stats.collectors, "kolekcja prywatna", "kolekcje prywatne", "kolekcji prywatnych") },
+            ].map((s) => (
+              <div key={s.label} className="flex min-w-0 flex-col gap-2 border-l-2 border-accent pl-5">
+                <dd className="order-1 m-0 whitespace-nowrap font-display text-[34px] font-medium leading-none tracking-[-0.01em] sm:text-[64px]">
+                  <CountUp to={s.value} suffix={s.suffix ?? ""} />
+                </dd>
+                <dt className="order-2 text-[15px] text-ink-soft">{s.label}</dt>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
 
       {/* Lost works counter */}
       <section id="szukamy" className="scroll-mt-4 bg-ink text-ground">

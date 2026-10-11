@@ -5,7 +5,7 @@ import { createMockApi } from "./mocks";
 import type {
   AiDescribeRequest, AiDescriptionDto, AuthResponse, LoginRequest, RegisterRequest, ArtworkDetailDto, ArtworkSummaryDto, AuctionDetailDto, AuctionWsMessage,
   BidDto, CreateArtworkRequest, CreateAuctionRequest, LostArtworkDto, NewPassportEventRequest, PassportDto,
-  PassportEventDto, PlaceBidRequest, UploadDto, UserDto,
+  PassportEventDto, PlaceBidRequest, StatsDto, UploadDto, UserDto,
 } from "./types";
 
 export type AuctionListener = (msg: AuctionWsMessage) => void;
@@ -27,6 +27,7 @@ export interface Api {
   getAuction(id: number): Promise<AuctionDetailDto>;
   placeBid(id: number, req: PlaceBidRequest): Promise<BidDto>;
   listLost(limit?: number): Promise<LostArtworkDto[]>;
+  stats(): Promise<StatsDto>;
   /** Opens the auction stream; returns a function that closes it. `onClose` fires on unexpected
    *  disconnect with the close code (4404: no such auction). */
   subscribeAuction(id: number, onMessage: AuctionListener, onClose?: (code: number) => void): () => void;
@@ -53,6 +54,7 @@ const realApi: Api = {
   getAuction: (id) => request("GET", `/auctions/${id}`),
   placeBid: (id, req) => request("POST", `/auctions/${id}/bids`, req),
   listLost: (limit = 50) => request("GET", `/lost?limit=${limit}`),
+  stats: () => request("GET", "/stats"),
 
   subscribeAuction(id, onMessage, onClose) {
     const ws = new WebSocket(wsUrl(`/ws/auctions/${id}`));

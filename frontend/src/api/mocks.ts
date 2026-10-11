@@ -8,7 +8,7 @@ import type {
   AiDescribeRequest, AiDescriptionDto, AuthResponse, LoginRequest, RegisterRequest, ArtworkCategory, ArtworkDetailDto, ArtworkSummaryDto,
   AuctionDetailDto, AuctionStatus, AuctionSummaryDto, AuctionWsMessage, BidDto, CreateArtworkRequest,
   CreateAuctionRequest, LostArtworkDto, LostArtworkMatchDto, NewPassportEventRequest,
-  PassportDto, PassportEventDto, PassportEventType, PlaceBidRequest, UploadDto, UserDto,
+  PassportDto, PassportEventDto, PassportEventType, PlaceBidRequest, StatsDto, UploadDto, UserDto,
 } from "./types";
 import type { Api, AuctionListener } from "./endpoints";
 
@@ -425,6 +425,18 @@ const mockApi: Api = {
   },
 
   listLost: (limit = 50) => delay(lost.slice(0, limit)),
+
+  stats(): Promise<StatsDto> {
+    const published = [...artworks.values()].filter((a) => a.status === "published");
+    const ids = new Set(published.map((a) => a.id));
+    return delay({
+      artworks: published.length,
+      passportEntries: events.filter((e) => ids.has(e.artworkId)).length,
+      collectors: new Set(published.map((a) => a.ownerId)).size,
+      auctionVolume: [...auctions.values()].filter((a) => a.bidCount > 0).reduce((sum, a) => sum + a.currentPrice, 0),
+      lostIndexed: lost.length,
+    });
+  },
 
   subscribeAuction(id: number, onMessage: AuctionListener, onClose?: (code: number) => void): () => void {
     const set = listeners.get(id) ?? new Set<AuctionListener>();

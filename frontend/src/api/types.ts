@@ -100,6 +100,15 @@ export interface AuctionDetailDto extends AuctionSummaryDto {
   bids: BidDto[]; // last 10, newest first
 }
 
+/** GET /api/stats: live numbers for the home page, counted from the database. */
+export interface StatsDto {
+  artworks: number;
+  passportEntries: number;
+  collectors: number;
+  auctionVolume: number;
+  lostIndexed: number;
+}
+
 export interface LostArtworkDto {
   id: number;
   title: string;
