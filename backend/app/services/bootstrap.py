@@ -4,7 +4,8 @@ Runs in the background after startup and never deletes anything:
 - copies demo and lost images into MEDIA_DIR when they are missing (a database
   seeded from a laptop points at /media files that the server does not have);
 - fills lost_artworks from data/lost when the table is empty;
-- runs the seed when there are no users yet.
+- runs the seed when there are no users yet;
+- adds the public-domain gallery (data/gallery) works that are not in the database yet.
 """
 
 import logging
@@ -22,7 +23,12 @@ log = logging.getLogger("rodowod.bootstrap")
 def restore_media() -> int:
     copied = 0
     settings.media_dir.mkdir(parents=True, exist_ok=True)
-    for folder, prefix in ((settings.data_dir / "demo", "demo_"), (settings.data_dir / "lost" / "images", "lost_")):
+    folders = (
+        (settings.data_dir / "demo", "demo_"),
+        (settings.data_dir / "lost" / "images", "lost_"),
+        (settings.data_dir / "gallery" / "images", "gallery_"),
+    )
+    for folder, prefix in folders:
         if not folder.is_dir():
             continue
         for src in folder.iterdir():
@@ -36,6 +42,7 @@ def restore_media() -> int:
 def run() -> None:
     from scripts.index_lost import index
     from scripts.seed import seed
+    from scripts.seed_gallery import seed_gallery
 
     copied = restore_media()
     if copied:
@@ -48,3 +55,5 @@ def run() -> None:
         log.info("indexed the lost dataset: %d added, %d skipped", added, skipped)
     if not users:
         log.info("seeded: %d auctions", seed())
+    if added := seed_gallery():
+        log.info("gallery: %d public-domain works added", added)

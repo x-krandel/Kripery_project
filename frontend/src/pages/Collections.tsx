@@ -15,6 +15,14 @@ import { roleLabel } from "../lib/labels";
 
 const publicWorks = (xs: ArtworkSummaryDto[] | undefined) => (xs ?? []).filter((a) => a.status === "published");
 
+/** Accounts are people (a first name or a login, one word) or the public-domain gallery ("Galeria klasyków"). */
+const isInstitution = (name: string) => name.trim().includes(" ");
+
+/** "Kolekcja Anny" for people; an institution's own name as is. */
+function collectionTitle(name: string): string {
+  return isInstitution(name) ? name : `Kolekcja ${possessive(name)}`;
+}
+
 function possessive(name: string): string {
   // Polish genitive for our demo names: Anna -> Anny, Ewa -> Ewy, Piotr -> Piotra.
   if (name.endsWith("a")) return name.slice(0, -1) + (/[kg]$/.test(name.slice(0, -1)) ? "i" : "y");
@@ -99,7 +107,7 @@ function CollectionCard({ user, works, value }: { user: UserDto; works: ArtworkS
       <div className="flex items-center gap-3">
         <Avatar id={user.id} name={user.name} size={40} />
         <div className="flex flex-col">
-          <span className="font-display text-[28px] leading-none">Kolekcja {possessive(user.name)}</span>
+          <span className="font-display text-[28px] leading-none">{collectionTitle(user.name)}</span>
           <span className="text-sm text-muted">
             {works.length} {plural(works.length, "dzieło", "dzieła", "dzieł")}
             {value > 0 && <> · wartość <strong className="font-semibold text-ink">{formatPln(value)}</strong></>}
@@ -137,11 +145,11 @@ export function CollectionPage() {
             <Link to="/kolekcje" className="text-sm text-muted no-underline">← Wszystkie kolekcje</Link>
             <p className="eyebrow m-0">Kolekcja prywatna · wystawa online</p>
             <h1 className="m-0 font-display text-[56px] font-medium leading-none sm:text-[80px]">
-              {owner ? `Kolekcja ${possessive(owner.name)}` : "Kolekcja"}
+              {owner ? collectionTitle(owner.name) : "Kolekcja"}
             </h1>
             {owner && (
               <span className="flex items-center gap-2.5 text-[15px] text-ink-soft">
-                <Avatar id={owner.id} name={owner.name} size={30} /> {owner.name}, {roleLabel(owner.name, owner.role)}
+                <Avatar id={owner.id} name={owner.name} size={30} /> {isInstitution(owner.name) ? "Dzieła z domeny publicznej, zdjęcia: Wikimedia Commons" : `${owner.name}, ${roleLabel(owner.name, owner.role)}`}
               </span>
             )}
           </div>

@@ -72,7 +72,7 @@ export function Home() {
               { value: stats.artworks, label: `${plural(stats.artworks, "dzieło", "dzieła", "dzieł")} z paszportem pochodzenia` },
               { value: stats.passportEntries, label: `${plural(stats.passportEntries, "wpis", "wpisy", "wpisów")} w łańcuchach SHA‑256` },
               { value: stats.auctionVolume, label: "w ofertach na licytacjach", suffix: " zł" },
-              { value: stats.collectors, label: plural(stats.collectors, "kolekcja prywatna", "kolekcje prywatne", "kolekcji prywatnych") },
+              { value: stats.collectors, label: plural(stats.collectors, "kolekcja", "kolekcje", "kolekcji") },
             ].map((s) => (
               <div key={s.label} className="flex min-w-0 flex-col gap-2 border-l-2 border-accent pl-5">
                 <dd className="order-1 m-0 whitespace-nowrap font-display text-[34px] font-medium leading-none tracking-[-0.01em] sm:text-[64px]">
