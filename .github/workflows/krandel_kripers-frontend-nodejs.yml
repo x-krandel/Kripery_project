@@ -42,6 +42,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: node-app
+          retention-days: 1
           path: release
 
   deploy:
