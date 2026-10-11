@@ -53,7 +53,6 @@ export function ArtworkPage() {
       <section className="flex flex-wrap items-start gap-16">
         <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-6">
           {art ? <ArtworkFrame src={art.imageUrl} alt={art.title} mat="lg" shadow /> : <Skeleton className="aspect-[4/5] w-full" />}
-          {art && <QrBlock artworkId={art.id} title={art.title} />}
         </div>
 
         <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-7">
@@ -65,6 +64,7 @@ export function ArtworkPage() {
             </div>
           )}
           {art && <AuctionBox art={art} />}
+          {art && <QrBlock artworkId={art.id} title={art.title} />}
           {art && <ArtworkInvitations artworkId={art.id} />}
           {art?.story && (
             <blockquote className="m-0 flex flex-col gap-3">

@@ -208,7 +208,7 @@ export function AddArtwork() {
             <div className="flex flex-wrap gap-4">
               <div className="flex-[1_1_180px]">
                 <Field id="f-cat" label="Kategoria" ai={ai("category")} busy={aiBusy}>
-                  <select id="f-cat" className="field" value={form.category} onChange={set("category")}>
+                  <select id="f-cat" className="field pr-11" value={form.category} onChange={set("category")}>
                     {(Object.keys(CATEGORY_LABEL) as ArtworkCategory[]).map((c) => <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>)}
                   </select>
                 </Field>

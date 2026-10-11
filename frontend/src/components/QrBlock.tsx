@@ -19,7 +19,7 @@ export function QrBlock({ artworkId, title }: { artworkId: number; title: string
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-6 rounded-2xl border border-line bg-surface p-5">
+    <div className="flex flex-wrap items-center gap-6 rounded-[20px] border border-line bg-surface p-6">
       <div ref={wrap} className="shrink-0 bg-surface p-1">
         <QRCode value={url} size={112} fgColor="#17140F" title={`Kod QR paszportu: ${title}`} />
       </div>

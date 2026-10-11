@@ -71,12 +71,13 @@ export function Home() {
             {[
               { value: stats.artworks, label: `${plural(stats.artworks, "dzieło", "dzieła", "dzieł")} z paszportem pochodzenia` },
               { value: stats.passportEntries, label: `${plural(stats.passportEntries, "wpis", "wpisy", "wpisów")} w łańcuchach SHA‑256` },
-              { value: stats.auctionVolume, label: "w ofertach na licytacjach", suffix: " zł" },
+              { value: stats.auctionVolume, label: "w ofertach na licytacjach", suffix: " zł", compact: true },
               { value: stats.collectors, label: plural(stats.collectors, "kolekcja", "kolekcje", "kolekcji") },
             ].map((s) => (
-              <div key={s.label} className="flex min-w-0 flex-col gap-2 border-l-2 border-accent pl-5">
-                <dd className="order-1 m-0 whitespace-nowrap font-display text-[34px] font-medium leading-none tracking-[-0.01em] sm:text-[64px]">
-                  <CountUp to={s.value} suffix={s.suffix ?? ""} />
+              <div key={s.label} className="@container flex min-w-0 flex-col gap-2 border-l-2 border-accent pl-5">
+                {/* Size follows the column (cqw), so the widest value ("10,1 mln zł") always fits, at any screen width */}
+                <dd className="order-1 m-0 whitespace-nowrap font-display text-[min(64px,22cqw)] font-medium leading-none tracking-[-0.01em]">
+                  <CountUp to={s.value} suffix={s.suffix ?? ""} compact={s.compact} />
                 </dd>
                 <dt className="order-2 text-[15px] text-ink-soft">{s.label}</dt>
               </div>

@@ -73,7 +73,7 @@ export function Collections() {
         <label htmlFor="collection-sort" className="text-sm font-semibold text-ink-soft">Sortuj</label>
         <select id="collection-sort" value={sort}
           onChange={(e) => setParams((p) => { p.set("sort", e.target.value); return p; }, { replace: true })}
-          className="min-h-11 rounded-full border border-line-strong bg-surface px-4 text-[15px] font-medium text-ink">
+          className="min-h-11 rounded-full border border-line-strong bg-surface pl-4 pr-11 text-[15px] font-medium text-ink">
           {SORTS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
         </select>
       </div>
