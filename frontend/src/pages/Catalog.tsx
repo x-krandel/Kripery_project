@@ -100,7 +100,7 @@ export function Catalog() {
           </label>
           <label htmlFor="sortuj" className="text-sm text-ink-soft">Sortuj</label>
           <select id="sortuj" value={sort} onChange={(e) => setSort(e.target.value as Sort)}
-            className="min-h-11 rounded-full border border-line-strong bg-surface px-3.5 text-[15px] text-ink">
+            className="min-h-11 rounded-full border border-line-strong bg-surface pl-4 pr-11 text-[15px] text-ink">
             <option value="ending">Kończą się najwcześniej</option>
             <option value="price">Najwyższa oferta</option>
             <option value="newest">Najnowsze</option>

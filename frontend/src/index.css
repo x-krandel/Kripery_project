@@ -55,6 +55,16 @@
   }
   button { cursor: pointer; }
   button:disabled { cursor: not-allowed; }
+  /* The native select arrow sits flush against rounded edges and differs per browser: draw our own chevron.
+     Give every select pr-11 so the text never runs under it. */
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A443B' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 18px 18px;
+    cursor: pointer;
+  }
 }
 
 /* Custom utilities (Tailwind 4: @utility can be combined with other classes and variants). */
