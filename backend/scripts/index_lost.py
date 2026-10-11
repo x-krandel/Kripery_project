@@ -1,4 +1,9 @@
-"""data/lost/lost.csv (title,artist,source_url,image_file) -> lost_artworks.
+"""data/lost -> lost_artworks.
+
+- lost.csv (title,artist,source_url,image_file): images in data/lost/images,
+  embedded here and copied to MEDIA_DIR;
+- lost_vectors.jsonl (title,artist,source_url,image_url,embedding): precomputed
+  clip-ViT-B-32 vectors, loaded as is; image_url stays a remote URL, nothing is downloaded.
 
 Usage: python -m scripts.index_lost [--reset]
 Rows whose source_url is already indexed are skipped.
@@ -6,14 +11,18 @@ Rows whose source_url is already indexed are skipped.
 
 import argparse
 import csv
+import json
 import shutil
 
 from sqlalchemy import delete, select
 
 from app.config import settings
 from app.db import SessionLocal, init_db
-from app.models import LostArtwork
+from app.models import EMBEDDING_DIM, LostArtwork
 from app.services import embeddings
+
+# Above this two images show one painting (e.g. the CSV and the JSONL list the same work).
+SAME_WORK_SIMILARITY = 0.95
 
 
 def index(reset: bool = False) -> tuple[int, int]:
@@ -49,6 +58,31 @@ def index(reset: bool = False) -> tuple[int, int]:
                 if added % 100 == 0:
                     db.commit()
                     print(f"indexed {added}")
+
+        vectors = lost_dir / "lost_vectors.jsonl"
+        if vectors.exists():
+            with open(vectors, encoding="utf-8") as f:
+                for line in f:
+                    row = json.loads(line)
+                    if row["source_url"] in known:
+                        continue
+                    if len(row["embedding"]) != EMBEDDING_DIM:
+                        print(f"warning: {row['title']!r} has a {len(row['embedding'])}-d vector, row skipped")
+                        skipped += 1
+                        continue
+                    db.flush()
+                    distance = LostArtwork.embedding.cosine_distance(row["embedding"])
+                    closest = db.execute(select(LostArtwork.title, distance).order_by(distance).limit(1)).first()
+                    if closest is not None and 1 - closest[1] >= SAME_WORK_SIMILARITY:
+                        print(f"note: {row['title']!r} is already indexed as {closest[0]!r}, row skipped")
+                        skipped += 1
+                        continue
+                    db.add(LostArtwork(
+                        title=row["title"], artist=row.get("artist") or "", source_url=row["source_url"],
+                        image_url=row["image_url"], embedding=row["embedding"],
+                    ))
+                    known.add(row["source_url"])
+                    added += 1
         db.commit()
     return added, skipped
 
