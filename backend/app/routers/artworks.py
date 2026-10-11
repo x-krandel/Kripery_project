@@ -14,6 +14,7 @@ from app.schemas import (
     NewPassportEventRequest,
     PassportDto,
     PassportEventDto,
+    SimilarArtworkDto,
 )
 from app.services import embeddings, loss_check, views
 from app.services.hashing import append_event, load_events, verify_chain
@@ -103,6 +104,29 @@ def create_artwork(db: Db, user: CurrentUser, req: CreateArtworkRequest):
 @router.get("/artworks/{artwork_id}", response_model=ArtworkDetailDto)
 def get_artwork_detail(db: Db, user: OptionalUser, artwork_id: int):
     return views.artwork_detail(db, get_visible_artwork(db, artwork_id, user))
+
+
+@router.get("/artworks/{artwork_id}/similar", response_model=list[SimilarArtworkDto])
+def similar_artworks(db: Db, user: OptionalUser, artwork_id: int, limit: Annotated[int, Query(ge=1, le=12)] = 4):
+    """Published works whose CLIP image vector is closest to this one (pgvector cosine distance)."""
+    artwork = get_visible_artwork(db, artwork_id, user)
+    if artwork.embedding is None:
+        return []
+    vec = artwork.embedding.tolist() if hasattr(artwork.embedding, "tolist") else list(artwork.embedding)
+    distance = Artwork.embedding.cosine_distance(vec)
+    rows = db.execute(
+        select(Artwork, distance.label("distance"))
+        .where(Artwork.id != artwork.id, Artwork.status == "published", Artwork.embedding.is_not(None))
+        # distance >= 1 means cosine similarity <= 0: nothing in common, not worth showing
+        .where(distance < 1)
+        .order_by(distance)
+        .limit(limit)
+    ).all()
+    summaries = views.artwork_summaries(db, [a for a, _ in rows])
+    return [
+        SimilarArtworkDto(**s.model_dump(), similarity=round(max(0.0, min(1.0, 1 - d)), 4))
+        for s, (_, d) in zip(summaries, rows)
+    ]
 
 
 @router.get("/artworks/{artwork_id}/passport", response_model=PassportDto)

@@ -4,8 +4,8 @@ import { request, USE_MOCKS, wsUrl } from "./client";
 import { createMockApi } from "./mocks";
 import type {
   AiDescribeRequest, AiDescriptionDto, AuthResponse, LoginRequest, RegisterRequest, ArtworkDetailDto, ArtworkSummaryDto, AuctionDetailDto, AuctionWsMessage,
-  BidDto, CreateArtworkRequest, CreateAuctionRequest, LostArtworkDto, NewPassportEventRequest, PassportDto,
-  PassportEventDto, PlaceBidRequest, UploadDto, UserDto,
+  BidDto, CreateArtworkRequest, CreateAuctionRequest, CreateOfflineAuctionRequest, PostDto, LostArtworkDto, NewPassportEventRequest, PassportDto,
+  PassportEventDto, PlaceBidRequest, SimilarArtworkDto, StatsDto, UploadDto, UserDto,
 } from "./types";
 
 export type AuctionListener = (msg: AuctionWsMessage) => void;
@@ -22,11 +22,16 @@ export interface Api {
   createArtwork(req: CreateArtworkRequest): Promise<ArtworkDetailDto>;
   getArtwork(id: number): Promise<ArtworkDetailDto>;
   getPassport(id: number): Promise<PassportDto>;
+  similarArtworks(id: number, limit?: number): Promise<SimilarArtworkDto[]>;
   addEvent(id: number, req: NewPassportEventRequest): Promise<PassportEventDto>;
   createAuction(req: CreateAuctionRequest): Promise<AuctionDetailDto>;
   getAuction(id: number): Promise<AuctionDetailDto>;
   placeBid(id: number, req: PlaceBidRequest): Promise<BidDto>;
   listLost(limit?: number): Promise<LostArtworkDto[]>;
+  stats(): Promise<StatsDto>;
+  listPosts(filter: { authorId?: number; artworkId?: number }): Promise<PostDto[]>;
+  createOfflineAuction(req: CreateOfflineAuctionRequest): Promise<PostDto>;
+  deletePost(id: number): Promise<void>;
   /** Opens the auction stream; returns a function that closes it. `onClose` fires on unexpected
    *  disconnect with the close code (4404: no such auction). */
   subscribeAuction(id: number, onMessage: AuctionListener, onClose?: (code: number) => void): () => void;
@@ -47,12 +52,22 @@ const realApi: Api = {
   listArtworks: (ownerId) => request("GET", ownerId == null ? "/artworks" : `/artworks?ownerId=${ownerId}`),
   createArtwork: (req) => request("POST", "/artworks", req),
   getArtwork: (id) => request("GET", `/artworks/${id}`),
+  similarArtworks: (id, limit = 4) => request("GET", `/artworks/${id}/similar?limit=${limit}`),
   getPassport: (id) => request("GET", `/artworks/${id}/passport`),
   addEvent: (id, req) => request("POST", `/artworks/${id}/events`, req),
   createAuction: (req) => request("POST", "/auctions", req),
   getAuction: (id) => request("GET", `/auctions/${id}`),
   placeBid: (id, req) => request("POST", `/auctions/${id}/bids`, req),
   listLost: (limit = 50) => request("GET", `/lost?limit=${limit}`),
+  stats: () => request("GET", "/stats"),
+  listPosts: ({ authorId, artworkId }) => {
+    const q = new URLSearchParams();
+    if (authorId != null) q.set("authorId", String(authorId));
+    if (artworkId != null) q.set("artworkId", String(artworkId));
+    return request("GET", `/posts?${q}`);
+  },
+  createOfflineAuction: (req) => request("POST", "/posts/offline-auction", req),
+  deletePost: (id) => request<void>("DELETE", `/posts/${id}`),
 
   subscribeAuction(id, onMessage, onClose) {
     const ws = new WebSocket(wsUrl(`/ws/auctions/${id}`));

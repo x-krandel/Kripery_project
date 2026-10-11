@@ -55,6 +55,12 @@ class ArtworkSummaryDto(CamelModel):
     owner_id: int
     verified: bool
     auction: AuctionSummaryDto | None
+    # Price of the latest auction (current offer, or the final price once it ended); None if never auctioned.
+    last_price: int | None = None
+
+
+class SimilarArtworkDto(ArtworkSummaryDto):
+    similarity: float  # cosine similarity of the CLIP image vectors, 0..1
 
 
 class LostArtworkMatchDto(CamelModel):
@@ -122,6 +128,40 @@ class LostArtworkDto(CamelModel):
     artist: str
     source_url: str
     image_url: str
+
+
+PostKind = Literal["offline_auction"]
+
+
+class PostDto(CamelModel):
+    id: int
+    kind: PostKind
+    author: UserDto
+    artwork: ArtworkSummaryDto | None
+    title: str
+    body: str
+    place: str
+    starts_at: UtcDateTime | None
+    min_price: int | None
+    created_at: UtcDateTime
+
+
+class CreateOfflineAuctionRequest(CamelModel):
+    """Invitation to an in-person auction of one of the author's works; published as a post at once."""
+    artwork_id: int
+    starts_at: datetime
+    place: str = Field(min_length=3, max_length=300)
+    min_price: int = Field(gt=0)
+    body: str = Field(default="", max_length=3000)
+
+
+class StatsDto(CamelModel):
+    """Live numbers for the home page, all counted from the database."""
+    artworks: int  # published works with a passport
+    passport_entries: int  # entries in the hash chains of published works
+    collectors: int  # owners of at least one published work
+    auction_volume: int  # sum of the current or final price of auctions with bids, PLN
+    lost_indexed: int  # war-loss records the loss check compares against
 
 
 class UploadDto(CamelModel):

@@ -7,7 +7,7 @@ import urllib.request
 from pathlib import Path
 from typing import get_args
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, field_validator
 
 from app.config import settings
 from app.schemas import AiDescriptionDto, ArtworkCategory
@@ -20,11 +20,17 @@ CATEGORIES = get_args(ArtworkCategory)
 
 log = logging.getLogger(__name__)
 
-PROMPT = """You are a museum cataloguer. Look at the photo of an artwork and answer ONLY with JSON:
+PROMPT = """You are a museum cataloguer. Look at the photo of an artwork and answer ONLY with one JSON object:
 {"title": "...", "artist": "...", "dating": "...", "technique": "...",
  "category": "painting|works_on_paper|sculpture|other", "note": "..." or null}
-Write all values in Polish. If you cannot read a signature, set artist to "Autor nieznany"
-and explain in note. Never attribute the work to a famous artist without a visible signature."""
+Rules for "artist", in this order:
+1. If you recognise this specific, known artwork (for example a famous painting or one from a museum
+   collection), give its author's full name and its usual title, and say in "note" that it is an AI
+   recognition the owner should verify.
+2. Else, if a signature is legible, give the name from the signature.
+3. Else, give the most likely attribution in Polish auction-catalogue style, such as "Szkoła polska",
+   "Krąg Jana Matejki" or "Malarz nieznany", and explain in "note" why.
+Never leave "artist" empty and never use null for any text field. Write all values in Polish."""
 
 
 class AiUnavailable(Exception):
@@ -38,6 +44,12 @@ class LlmAnswer(BaseModel):
     technique: str = ""
     category: ArtworkCategory = "other"
     note: str | None = None
+
+    @field_validator("title", "artist", "dating", "technique", mode="before")
+    @classmethod
+    def _text(cls, v):
+        # Models sometimes send null or a number ("dating": 1895) for a text field.
+        return "" if v is None else str(v).strip()
 
 
 def to_dto(answer: LlmAnswer, raw: dict) -> AiDescriptionDto:
@@ -122,6 +134,8 @@ def describe(image_path: Path) -> AiDescriptionDto:
         raise AiUnavailable("LLM_API_KEY is not set")
     try:
         raw = _ask_llm(image_path)
+        if not raw.get("artist") and raw.get("author"):
+            raw["artist"] = raw["author"]  # some models rename the key
         if raw.get("category") not in CATEGORIES:
             # Not a value the model gave us: use "other" and keep it out of aiFields.
             raw["category"] = None

@@ -48,6 +48,8 @@ export function UserMenu() {
             </span>
           </div>
           <div className="my-1 h-px bg-line" />
+          <Link role="menuitem" to={`/kolekcje/${user.id}`} onClick={() => setOpen(false)}
+            className="flex min-h-11 items-center rounded-xl px-3 text-sm text-ink no-underline hover:bg-ground">Mój profil i posty</Link>
           <Link role="menuitem" to="/aukcje?widok=kolekcje" onClick={() => setOpen(false)}
             className="flex min-h-11 items-center rounded-xl px-3 text-sm text-ink no-underline hover:bg-ground">Moja kolekcja</Link>
           <Link role="menuitem" to="/dodaj" onClick={() => setOpen(false)}

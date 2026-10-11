@@ -138,3 +138,22 @@ class LostArtwork(Base):
     source_url: Mapped[str] = mapped_column(Text, unique=True)
     image_url: Mapped[str] = mapped_column(Text)
     embedding: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIM))
+
+
+class Post(Base):
+    """A post on the author's profile. Today only invitations to an offline (in-person) auction."""
+
+    __tablename__ = "posts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    artwork_id: Mapped[int | None] = mapped_column(
+        ForeignKey("artworks.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    kind: Mapped[str] = mapped_column(String(32))
+    title: Mapped[str] = mapped_column(String(300))
+    body: Mapped[str] = mapped_column(Text, default="")
+    place: Mapped[str] = mapped_column(String(300), default="")
+    starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    min_price: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

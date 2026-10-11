@@ -7,8 +7,8 @@ import { ApiRequestError, getApiToken, WS_CLOSE_NOT_FOUND } from "./client";
 import type {
   AiDescribeRequest, AiDescriptionDto, AuthResponse, LoginRequest, RegisterRequest, ArtworkCategory, ArtworkDetailDto, ArtworkSummaryDto,
   AuctionDetailDto, AuctionStatus, AuctionSummaryDto, AuctionWsMessage, BidDto, CreateArtworkRequest,
-  CreateAuctionRequest, LostArtworkDto, LostArtworkMatchDto, NewPassportEventRequest,
-  PassportDto, PassportEventDto, PassportEventType, PlaceBidRequest, UploadDto, UserDto,
+  CreateAuctionRequest, CreateOfflineAuctionRequest, LostArtworkDto, LostArtworkMatchDto, NewPassportEventRequest, PostDto,
+  PassportDto, PassportEventDto, PassportEventType, PlaceBidRequest, SimilarArtworkDto, StatsDto, UploadDto, UserDto,
 } from "./types";
 import type { Api, AuctionListener } from "./endpoints";
 
@@ -77,7 +77,13 @@ const events: MEvent[] = [];
 const auctions = new Map<number, MAuction>();
 const bids: MBid[] = [];
 const uploads = new Map<string, { imageUrl: string; name: string }>();
-const ids = { artwork: 1, event: 1, auction: 1, bid: 1 };
+const ids = { artwork: 1, event: 1, auction: 1, bid: 1, post: 1 };
+interface MPost { id: number; authorId: number; artworkId: number; title: string; body: string; place: string; startsAt: string; minPrice: number; createdAt: string }
+const posts: MPost[] = [];
+const postDto = (p: MPost): PostDto => ({
+  id: p.id, kind: "offline_auction", author: userById(p.authorId), artwork: artworkSummary(artworks.get(p.artworkId)!),
+  title: p.title, body: p.body, place: p.place, startsAt: p.startsAt, minPrice: p.minPrice, createdAt: p.createdAt,
+});
 
 const REG_TITLE = "Dodano do Rodowodu";
 const REG_CLEAR = "Automatyczne porównanie z bazą strat wojennych MKiDN: brak dopasowań";
@@ -210,6 +216,7 @@ function artworkSummary(a: MArtwork): ArtworkSummaryDto {
     imageUrl: a.imageUrl, status: a.status, ownerId: a.ownerId,
     verified: a.lossResult === "clear" && verify(a.id).chainValid,
     auction: active ? auctionSummary(active) : null,
+    lastPrice: [...auctions.values()].filter((x) => x.artworkId === a.id).sort((x, y) => y.id - x.id)[0]?.currentPrice ?? null,
   };
 }
 function artworkDetail(a: MArtwork): ArtworkDetailDto {
@@ -381,6 +388,16 @@ const mockApi: Api = {
 
   getArtwork: (id: number) => delay(artworkDetail(getArtworkOr404(id))),
 
+  // No image vectors in the browser: same category first, then the rest, with a made-up score.
+  similarArtworks(id: number, limit = 4): Promise<SimilarArtworkDto[]> {
+    const base = getArtworkOr404(id);
+    const others = [...artworks.values()]
+      .filter((a) => a.id !== id && a.status === "published")
+      .sort((a, b) => Number(b.category === base.category) - Number(a.category === base.category) || a.id - b.id)
+      .slice(0, limit);
+    return delay(others.map((a, i) => ({ ...artworkSummary(a), similarity: Math.round((0.86 - i * 0.04) * 100) / 100 })));
+  },
+
   getPassport(id: number): Promise<PassportDto> {
     const art = getArtworkOr404(id);
     const check = verify(id);
@@ -425,6 +442,49 @@ const mockApi: Api = {
   },
 
   listLost: (limit = 50) => delay(lost.slice(0, limit)),
+
+  listPosts({ authorId, artworkId }: { authorId?: number; artworkId?: number }): Promise<PostDto[]> {
+    const items = posts
+      .filter((p) => (authorId == null || p.authorId === authorId) && (artworkId == null || p.artworkId === artworkId))
+      .filter((p) => isVisible(artworks.get(p.artworkId)!) || p.authorId === currentUserId())
+      .sort((a, b) => b.id - a.id);
+    return delay(items.map(postDto));
+  },
+
+  async createOfflineAuction(req: CreateOfflineAuctionRequest): Promise<PostDto> {
+    const user = requireUser();
+    const art = getArtworkOr404(req.artworkId);
+    if (art.ownerId !== user.id) fail(403, "NOT_OWNER", "To dzieło należy do innego użytkownika");
+    if (art.status === "held") fail(409, "ARTWORK_HELD", "Publikacja dzieła jest wstrzymana, nie można wystawić go na aukcję");
+    if (new Date(req.startsAt).getTime() <= Date.now()) fail(400, "INVALID_DATE", "Termin aukcji musi być w przyszłości");
+    const p: MPost = {
+      id: ids.post++, authorId: user.id, artworkId: art.id, title: `Aukcja stacjonarna: ${art.title}`, body: req.body.trim(),
+      place: req.place.trim(), startsAt: iso(new Date(req.startsAt)), minPrice: req.minPrice, createdAt: iso(now()),
+    };
+    posts.push(p);
+    return delay(postDto(p));
+  },
+
+  async deletePost(id: number): Promise<void> {
+    const user = requireUser();
+    const i = posts.findIndex((p) => p.id === id);
+    if (i < 0) fail(404, "NOT_FOUND", "Nie znaleziono posta");
+    if (posts[i].authorId !== user.id) fail(403, "NOT_AUTHOR", "To nie jest Twój post");
+    posts.splice(i, 1);
+    return delay(undefined);
+  },
+
+  stats(): Promise<StatsDto> {
+    const published = [...artworks.values()].filter((a) => a.status === "published");
+    const ids = new Set(published.map((a) => a.id));
+    return delay({
+      artworks: published.length,
+      passportEntries: events.filter((e) => ids.has(e.artworkId)).length,
+      collectors: new Set(published.map((a) => a.ownerId)).size,
+      auctionVolume: [...auctions.values()].filter((a) => a.bidCount > 0).reduce((sum, a) => sum + a.currentPrice, 0),
+      lostIndexed: lost.length,
+    });
+  },
 
   subscribeAuction(id: number, onMessage: AuctionListener, onClose?: (code: number) => void): () => void {
     const set = listeners.get(id) ?? new Set<AuctionListener>();

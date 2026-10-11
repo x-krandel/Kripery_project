@@ -39,6 +39,12 @@ export interface ArtworkSummaryDto {
   ownerId: number;
   verified: boolean; // chainValid && lossCheck.result === "clear"
   auction: AuctionSummaryDto | null; // unfinished auction or null
+  lastPrice: number | null; // latest auction's current or final price; null if never auctioned
+}
+
+/** GET /api/artworks/{id}/similar: nearest published works by CLIP image vector. */
+export interface SimilarArtworkDto extends ArtworkSummaryDto {
+  similarity: number; // cosine similarity 0..1
 }
 
 export interface LostArtworkMatchDto {
@@ -98,6 +104,38 @@ export interface AuctionDetailDto extends AuctionSummaryDto {
   minStep: number;
   leader: UserDto | null;
   bids: BidDto[]; // last 10, newest first
+}
+
+/** A post on the author's profile. Today only invitations to an offline (in-person) auction. */
+export interface PostDto {
+  id: number;
+  kind: "offline_auction";
+  author: UserDto;
+  artwork: ArtworkSummaryDto | null;
+  title: string;
+  body: string;
+  place: string;
+  startsAt: string | null;
+  minPrice: number | null;
+  createdAt: string;
+}
+
+/** POST /api/posts/offline-auction: published as a post at once. */
+export interface CreateOfflineAuctionRequest {
+  artworkId: number;
+  startsAt: string; // ISO, in the future
+  place: string;
+  minPrice: number;
+  body: string;
+}
+
+/** GET /api/stats: live numbers for the home page, counted from the database. */
+export interface StatsDto {
+  artworks: number;
+  passportEntries: number;
+  collectors: number;
+  auctionVolume: number;
+  lostIndexed: number;
 }
 
 export interface LostArtworkDto {

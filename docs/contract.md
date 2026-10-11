@@ -43,3 +43,15 @@ npx openapi-typescript http://localhost:8000/openapi.json -o src/api/schema.d.ts
   - `GET /api/artworks?ownerId=X` returns only published works unless X is the logged-in user;
   - `GET /api/artworks` without `ownerId` returns published works only, for everyone.
 - Public reads accept the token but do not require it; a missing or stale token is treated as anonymous, never as `401`.
+
+## Additions (2026-10-11)
+
+| Method | Path | Body | Answer |
+|---|---|---|---|
+| GET | `/api/stats` | – | `200 StatsDto`: published works, passport entries, private collections, offer volume (PLN), indexed war losses |
+| GET | `/api/artworks/{id}/similar?limit=4` | – | `200 SimilarArtworkDto[]`: nearest published works by CLIP image vector, `similarity` 0..1 |
+| GET | `/api/posts?authorId=&artworkId=` | – | `200 PostDto[]`, newest first; posts about held works only for their author |
+| POST | `/api/posts/offline-auction` | `{artworkId, startsAt, place, minPrice, body}` | `201 PostDto`: invitation to an in-person auction, owner only |
+| DELETE | `/api/posts/{id}` | – | `204`, author only |
+
+`ArtworkSummaryDto.lastPrice`: price of the latest auction (current offer, or the final price once it ended), `null` if the work was never auctioned. New error codes: `INVALID_DATE` (400, offline auction in the past), `NOT_AUTHOR` (403, deleting someone else's post).
