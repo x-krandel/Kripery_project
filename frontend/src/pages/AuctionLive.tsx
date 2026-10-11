@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ApiRequestError } from "../api/client";
 import { api } from "../api/endpoints";
 import type { ChatMessageDto } from "../api/types";
 import { ArtworkFrame } from "../components/ArtworkFrame";
-import { ArrowLeft, LiveDot, ShieldCheck } from "../components/Icons";
+import { ArrowLeft, ChatBubble, Close, LiveDot, ShieldCheck } from "../components/Icons";
 import { useToast } from "../hooks/useToast";
 import { Avatar } from "../components/Avatar";
 import { useAuctionSocket } from "../hooks/useAuctionSocket";
@@ -24,11 +24,30 @@ export function AuctionLive() {
   const qc = useQueryClient();
   const now = useNow();
   const [step, setStep] = useState(100);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const artQ = useQuery({ queryKey: ["artwork", id], queryFn: () => api.getArtwork(id) });
   const art = artQ.data;
   const auctionId = art?.auction?.id ?? null;
   const { auction, ended, connected, resync, chat } = useAuctionSocket(auctionId);
+  const composer = useChatComposer(auctionId);
+
+  // Unread badge on the phone chat button: history from the first snapshot counts as read,
+  // and so does everything that arrived while the sheet was open.
+  const lastChatId = chat.at(-1)?.id ?? 0;
+  const [seenChatId, setSeenChatId] = useState<number | null>(null);
+  if (auction && seenChatId === null) setSeenChatId(lastChatId);
+  const unread = chatOpen || seenChatId === null ? 0 : chat.filter((m) => m.id > seenChatId && m.user.id !== userId).length;
+  const openChat = () => { setSeenChatId(lastChatId); setChatOpen(true); };
+  const closeChat = () => { setSeenChatId(lastChatId); setChatOpen(false); };
+
+  // The sheet is phone-only: close it if the window grows to the desktop layout (Tailwind lg = 64rem).
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 64rem)");
+    const onChange = () => { if (mq.matches) setChatOpen(false); };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     if (ended) void qc.invalidateQueries();
@@ -102,8 +121,20 @@ export function AuctionLive() {
           <Link to={`/dziela/${id}`} aria-label="Wróć do dzieła" className="flex h-11 w-11 items-center justify-center text-ink lg:w-auto lg:gap-2 lg:text-[15px] lg:font-medium lg:no-underline lg:hover:text-accent">
             <ArrowLeft size={22} /><span className="hidden lg:inline">Wróć do dzieła</span>
           </Link>
-          <span className="flex-1 text-base font-bold lg:hidden">Aukcja na żywo</span>
+          <span className="min-w-0 flex-1 truncate text-base font-bold lg:hidden">Aukcja na żywo</span>
           <span className="hidden flex-1 lg:block" />
+          {auctionId != null && (
+            <button type="button" onClick={openChat} aria-haspopup="dialog" aria-expanded={chatOpen}
+              aria-label={unread > 0 ? `Czat licytacji, nowe wiadomości: ${unread}` : "Czat licytacji"}
+              className="relative inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 text-xs font-bold text-ink lg:hidden">
+              <ChatBubble size={16} /> Czat
+              {unread > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold leading-none text-white">
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
+            </button>
+          )}
           <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-bold tracking-[0.04em] ${connected ? "bg-alert-tint text-alert" : "bg-chip text-muted"}`}>
             {connected ? <><LiveDot /> NA ŻYWO</> : "ŁĄCZENIE…"}
           </span>
@@ -113,6 +144,12 @@ export function AuctionLive() {
           <section className="flex flex-col gap-3.5 lg:gap-6">
             {art && <ArtworkFrame src={art.imageUrl} alt={art.title} mat="sm" shadow className="lg:p-6" imgClassName="h-[196px] lg:h-[min(68vh,640px)]" />}
             <div className="lg:hidden">{heading}</div>
+            {auctionId != null && (
+              <div className="hidden flex-col gap-3 rounded-3xl border border-line bg-surface px-7 py-5 lg:flex">
+                <span className="text-xs font-bold uppercase tracking-[0.08em] text-muted">Czat licytacji</span>
+                <ChatBody messages={chat} userId={userId} artworkId={id} composer={composer} listClassName="h-72" />
+              </div>
+            )}
           </section>
 
           <section className="flex flex-col gap-3.5 lg:sticky lg:top-8 lg:gap-5">
@@ -159,7 +196,6 @@ export function AuctionLive() {
               </ul>
             </div>
 
-            {auctionId != null && <AuctionChat auctionId={auctionId} messages={chat} userId={userId} artworkId={id} />}
           </section>
         </div>
 
@@ -167,6 +203,12 @@ export function AuctionLive() {
           {controls}
           {rule}
         </div>
+
+        {auctionId != null && (
+          <ChatSheet open={chatOpen} onClose={closeChat} count={chat.length}>
+            <ChatBody messages={chat} userId={userId} artworkId={id} composer={composer} listClassName="min-h-0 flex-1" />
+          </ChatSheet>
+        )}
 
         {ended && (
           <div className="fixed inset-0 z-30 flex items-center justify-center bg-ink/55 p-6">
@@ -193,35 +235,42 @@ export function AuctionLive() {
   );
 }
 
-/** Live chat of the auction room: history comes with the WebSocket snapshot, new lines as "chat" messages. */
-function AuctionChat({ auctionId, messages, userId, artworkId }: {
-  auctionId: number; messages: ChatMessageDto[]; userId: number | null; artworkId: number;
-}) {
+type ChatComposer = { text: string; setText: (t: string) => void; submit: (e: FormEvent) => void; pending: boolean };
+
+/** One draft for both chat views, so text typed in the phone sheet survives closing it. */
+function useChatComposer(auctionId: number | null): ChatComposer {
   const toast = useToast();
-  const now = useNow();
   const [text, setText] = useState("");
-  const listRef = useRef<HTMLOListElement>(null);
   const send = useMutation({
-    mutationFn: (t: string) => api.postChatMessage(auctionId, t),
+    mutationFn: (t: string) => api.postChatMessage(auctionId!, t),
     onSuccess: () => setText(""),
     onError: (e) => toast(e instanceof ApiRequestError ? e.message : "Nie udało się wysłać wiadomości.", "error"),
   });
-
-  useEffect(() => {
-    const el = listRef.current;
-    if (el) el.scrollTop = el.scrollHeight; // follow the newest message
-  }, [messages.length]);
-
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const t = text.trim();
-    if (t && !send.isPending) send.mutate(t);
+    if (t && auctionId != null && !send.isPending) send.mutate(t);
   };
+  return { text, setText, submit, pending: send.isPending };
+}
+
+/** Message list and input of the auction room chat: history comes with the WebSocket snapshot,
+ *  new lines as "chat" messages. The parent decides the list height (`listClassName`). */
+function ChatBody({ messages, userId, artworkId, composer, listClassName }: {
+  messages: ChatMessageDto[]; userId: number | null; artworkId: number; composer: ChatComposer; listClassName: string;
+}) {
+  const now = useNow();
+  const inputId = useId();
+  const listRef = useRef<HTMLOListElement>(null);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (el) el.scrollTop = el.scrollHeight; // follow the newest message (and start at the bottom when the sheet opens)
+  }, [messages.length]);
 
   return (
-    <div className="flex flex-col gap-3 rounded-[18px] border border-line bg-surface p-4 lg:rounded-3xl lg:px-7 lg:py-5">
-      <span className="text-xs font-bold uppercase tracking-[0.08em] text-muted">Czat licytacji</span>
-      <ol ref={listRef} aria-live="polite" className="m-0 flex h-52 list-none flex-col gap-3 overflow-y-auto p-0 lg:h-64">
+    <>
+      <ol ref={listRef} aria-live="polite" className={`m-0 flex list-none flex-col gap-3 overflow-y-auto overscroll-contain p-0 ${listClassName}`}>
         {messages.length === 0 && <li className="m-auto text-center text-sm text-muted">Nikt jeszcze nie pisał. Przywitaj się z licytującymi.</li>}
         {messages.map((m) => (
           <li key={m.id} className="flex items-start gap-2.5">
@@ -241,16 +290,50 @@ function AuctionChat({ auctionId, messages, userId, artworkId }: {
           Zaloguj się, aby pisać na czacie
         </Link>
       ) : (
-        <form onSubmit={submit} className="flex gap-2">
-          <label htmlFor="chat-input" className="sr-only">Wiadomość</label>
-          <input id="chat-input" className="field min-h-11" maxLength={500} autoComplete="off" placeholder="Napisz wiadomość…"
-            value={text} onChange={(e) => setText(e.target.value)} />
-          <button type="submit" disabled={!text.trim() || send.isPending}
+        <form onSubmit={composer.submit} className="flex gap-2">
+          <label htmlFor={inputId} className="sr-only">Wiadomość</label>
+          <input id={inputId} className="field min-h-11" maxLength={500} autoComplete="off" placeholder="Napisz wiadomość…"
+            value={composer.text} onChange={(e) => composer.setText(e.target.value)} />
+          <button type="submit" disabled={!composer.text.trim() || composer.pending}
             className="min-h-11 shrink-0 rounded-xl bg-ink px-4 text-sm font-bold text-ground disabled:opacity-40">
             Wyślij
           </button>
         </form>
       )}
-    </div>
+    </>
+  );
+}
+
+/** Phones: the chat as a bottom sheet over the auction (native <dialog>: focus trap and Esc for free). */
+function ChatSheet({ open, onClose, count, children }: { open: boolean; onClose: () => void; count: number; children: ReactNode }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
+  }, [open]);
+
+  return (
+    <dialog ref={ref} onClose={onClose} aria-labelledby={titleId}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); /* tap on the backdrop */ }}
+      className="mx-auto mb-0 mt-auto h-[72dvh] w-full max-w-[430px] rounded-t-3xl border border-b-0 border-line bg-surface p-0 text-ink backdrop:bg-ink/45">
+      {open && (
+        <div className="flex h-full flex-col gap-3 px-4 pb-5 pt-2">
+          <span className="mx-auto h-1 w-10 shrink-0 rounded-full bg-line-strong" aria-hidden="true" />
+          <div className="flex items-center justify-between gap-3">
+            <h2 id={titleId} className="m-0 text-xs font-bold uppercase tracking-[0.08em] text-muted">
+              Czat licytacji{count > 0 && <span className="font-semibold normal-case tracking-normal"> · {count}</span>}
+            </h2>
+            <button type="button" onClick={onClose} aria-label="Zamknij czat" className="-mr-2 flex h-11 w-11 items-center justify-center rounded-full hover:bg-ground">
+              <Close />
+            </button>
+          </div>
+          {children}
+        </div>
+      )}
+    </dialog>
   );
 }
