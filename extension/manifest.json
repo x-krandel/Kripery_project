@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Kripery - Author & Artwork Detector",
+  "version": "1.0",
+  "description": "Detekcja autorska i wzbogacanie danych AI",
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "action": {
+    "default_title": "Otwórz panel Kripery"
+  }
+}
