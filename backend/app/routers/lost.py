@@ -11,5 +11,9 @@ router = APIRouter(tags=["lost"])
 
 
 @router.get("/lost", response_model=list[LostArtworkDto])
-def list_lost(db: Db, limit: Annotated[int, Query(ge=1, le=500)] = 50):
-    return db.scalars(select(LostArtwork).order_by(LostArtwork.id).limit(limit)).all()
+def list_lost(
+    db: Db,
+    limit: Annotated[int, Query(ge=1, le=500)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    return db.scalars(select(LostArtwork).order_by(LostArtwork.id).offset(offset).limit(limit)).all()
