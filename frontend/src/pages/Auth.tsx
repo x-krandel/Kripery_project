@@ -2,7 +2,7 @@ import { useState, type FormEvent, type InputHTMLAttributes, type ReactNode } fr
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiRequestError } from "../api/client";
 import { Avatar } from "../components/Avatar";
-import { ArrowRight } from "../components/Icons";
+import { ArrowRight, Check } from "../components/Icons";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useToast } from "../hooks/useToast";
 
@@ -24,7 +24,38 @@ function errorText(e: unknown): string {
   return e instanceof ApiRequestError ? e.message : "Coś poszło nie tak. Spróbuj ponownie.";
 }
 
-function AuthShell({ eyebrow, title, lead, children }: { eyebrow: string; title: string; lead: string; children: ReactNode }) {
+/** What an account gives, each line backed by a feature that exists in the app. */
+const BENEFITS = [
+  { title: "Indywidualny dobór dzieł", text: "Przy każdym dziele widzisz podobne, dobrane przez AI po samym obrazie, a nie po tytule czy opisie." },
+  { title: "Start dla debiutujących artystów", text: "Twój pierwszy obraz od razu dostaje paszport pochodzenia i kod QR, a na profilu zaprosisz kupujących na własną aukcję stacjonarną." },
+  { title: "Licytacje na żywo z czatem", text: "Oferty i wiadomości widzą wszyscy w sali w ułamku sekundy, na telefonie i komputerze." },
+  { title: "Historia, której nie da się podrobić", text: "Każdy wpis w paszporcie jest spięty skrótem SHA-256 z poprzednim. Zmiana wstecz od razu wychodzi na jaw." },
+  { title: "Ochrona przed dziełami z kradzieży", text: "Każde nowe dzieło porównujemy z bazą polskich strat wojennych MKiDN, zanim trafi na aukcję." },
+  { title: "AI-katalogowanie", text: "Wgraj zdjęcie, a AI podpowie tytuł, autora, epokę i technikę. Ty tylko sprawdzasz." },
+];
+
+function BenefitsAside() {
+  return (
+    <aside aria-labelledby="benefits-title" className="flex flex-[1_1_380px] flex-col gap-7 rounded-[28px] bg-ink p-8 text-ground sm:p-10">
+      <h2 id="benefits-title" className="m-0 font-display text-[36px] font-medium leading-[1.05] sm:text-[44px]">
+        Co daje konto w <em className="italic text-[#E8C9A2]">Rodowodzie</em>
+      </h2>
+      <ul className="m-0 flex list-none flex-col gap-5 p-0">
+        {BENEFITS.map((b) => (
+          <li key={b.title} className="flex gap-3.5">
+            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E8C9A2] text-ink"><Check size={16} /></span>
+            <span className="flex flex-col gap-1">
+              <span className="text-[17px] font-semibold">{b.title}</span>
+              <span className="text-[15px] leading-relaxed text-[#B5AC9C]">{b.text}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </aside>
+  );
+}
+
+function AuthShell({ eyebrow, title, lead, children, aside }: { eyebrow: string; title: string; lead: string; children: ReactNode; aside?: ReactNode }) {
   return (
     <main className="container-page flex flex-wrap items-stretch gap-12 py-12 sm:py-16">
       <section className="flex min-w-0 flex-[1_1_400px] flex-col justify-center gap-8">
@@ -35,7 +66,7 @@ function AuthShell({ eyebrow, title, lead, children }: { eyebrow: string; title:
         </div>
         <div className="w-full max-w-[440px]">{children}</div>
       </section>
-      <aside aria-hidden="true" className="hidden flex-[1_1_380px] flex-col justify-between gap-8 rounded-[28px] bg-ink p-10 text-ground lg:flex">
+      {aside ?? <aside aria-hidden="true" className="hidden flex-[1_1_380px] flex-col justify-between gap-8 rounded-[28px] bg-ink p-10 text-ground lg:flex">
         <p className="m-0 font-display text-[44px] font-medium leading-[1.05]">
           Każde dzieło ma swój <em className="italic text-[#E8C9A2]">rodowód.</em>
         </p>
@@ -45,7 +76,7 @@ function AuthShell({ eyebrow, title, lead, children }: { eyebrow: string; title:
         <p className="m-0 text-sm leading-relaxed text-[#B5AC9C]">
           Konto pozwala licytować, dodawać dzieła do kolekcji i dopisywać wpisy do ich paszportu.
         </p>
-      </aside>
+      </aside>}
     </main>
   );
 }
@@ -161,7 +192,7 @@ export function Register() {
   };
 
   return (
-    <AuthShell eyebrow="Nowe konto" title="Załóż konto" lead="Wystarczy login i hasło. Bez e-maila, bez czekania.">
+    <AuthShell eyebrow="Nowe konto" title="Załóż konto" lead="Wystarczy login i hasło. Bez e-maila, bez czekania." aside={<BenefitsAside />}>
       <form onSubmit={submit} className="flex flex-col gap-5" noValidate>
         <Field id="reg-username" label="Login" autoComplete="username" autoCapitalize="none" spellCheck={false}
           hint="3–32 znaki: małe litery, cyfry oraz . _ -" value={username} onChange={(e) => setUsername(e.target.value)} />

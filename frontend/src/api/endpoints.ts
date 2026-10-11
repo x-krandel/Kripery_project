@@ -4,7 +4,7 @@ import { request, USE_MOCKS, wsUrl } from "./client";
 import { createMockApi } from "./mocks";
 import type {
   AiDescribeRequest, AiDescriptionDto, AuthResponse, LoginRequest, RegisterRequest, ArtworkDetailDto, ArtworkSummaryDto, AuctionDetailDto, AuctionWsMessage,
-  BidDto, CreateArtworkRequest, CreateAuctionRequest, CreateOfflineAuctionRequest, PostDto, LostArtworkDto, NewPassportEventRequest, PassportDto,
+  BidDto, ChatMessageDto, CreateArtworkRequest, CreateAuctionRequest, CreateOfflineAuctionRequest, PostDto, LostArtworkDto, NewPassportEventRequest, PassportDto,
   PassportEventDto, PlaceBidRequest, SimilarArtworkDto, StatsDto, UploadDto, UserDto,
 } from "./types";
 
@@ -27,6 +27,7 @@ export interface Api {
   createAuction(req: CreateAuctionRequest): Promise<AuctionDetailDto>;
   getAuction(id: number): Promise<AuctionDetailDto>;
   placeBid(id: number, req: PlaceBidRequest): Promise<BidDto>;
+  postChatMessage(auctionId: number, text: string): Promise<ChatMessageDto>;
   listLost(limit?: number): Promise<LostArtworkDto[]>;
   stats(): Promise<StatsDto>;
   listPosts(filter: { authorId?: number; artworkId?: number }): Promise<PostDto[]>;
@@ -58,6 +59,7 @@ const realApi: Api = {
   createAuction: (req) => request("POST", "/auctions", req),
   getAuction: (id) => request("GET", `/auctions/${id}`),
   placeBid: (id, req) => request("POST", `/auctions/${id}/bids`, req),
+  postChatMessage: (auctionId, text) => request("POST", `/auctions/${auctionId}/messages`, { text }),
   listLost: (limit = 50) => request("GET", `/lost?limit=${limit}`),
   stats: () => request("GET", "/stats"),
   listPosts: ({ authorId, artworkId }) => {

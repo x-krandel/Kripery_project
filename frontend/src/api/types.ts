@@ -213,8 +213,18 @@ export interface AuthResponse {
 }
 
 // ===== WebSocket: server -> client only =====
+/** Chat in a live auction's room (POST /api/auctions/{id}/messages, WS "chat"). */
+export interface ChatMessageDto {
+  id: number;
+  auctionId: number;
+  user: UserDto;
+  text: string; // one line, at most 500 characters
+  createdAt: string;
+}
+
 export type AuctionWsMessage =
-  | { type: "snapshot"; auction: AuctionDetailDto }
+  | { type: "snapshot"; auction: AuctionDetailDto; chat?: ChatMessageDto[] } // chat: latest messages, oldest first
+  | { type: "chat"; message: ChatMessageDto }
   | { type: "bid"; bid: BidDto; currentPrice: number; bidCount: number; endsAt: string }
   | { type: "ended"; winner: UserDto | null; finalPrice: number };
 

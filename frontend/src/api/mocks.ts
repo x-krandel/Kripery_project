@@ -6,7 +6,7 @@ import { formatPln } from "../lib/format";
 import { ApiRequestError, getApiToken, WS_CLOSE_NOT_FOUND } from "./client";
 import type {
   AiDescribeRequest, AiDescriptionDto, AuthResponse, LoginRequest, RegisterRequest, ArtworkCategory, ArtworkDetailDto, ArtworkSummaryDto,
-  AuctionDetailDto, AuctionStatus, AuctionSummaryDto, AuctionWsMessage, BidDto, CreateArtworkRequest,
+  AuctionDetailDto, AuctionStatus, AuctionSummaryDto, AuctionWsMessage, BidDto, ChatMessageDto, CreateArtworkRequest,
   CreateAuctionRequest, CreateOfflineAuctionRequest, LostArtworkDto, LostArtworkMatchDto, NewPassportEventRequest, PostDto,
   PassportDto, PassportEventDto, PassportEventType, PlaceBidRequest, SimilarArtworkDto, StatsDto, UploadDto, UserDto,
 } from "./types";
@@ -80,6 +80,8 @@ const uploads = new Map<string, { imageUrl: string; name: string }>();
 const ids = { artwork: 1, event: 1, auction: 1, bid: 1, post: 1 };
 interface MPost { id: number; authorId: number; artworkId: number; title: string; body: string; place: string; startsAt: string; minPrice: number; createdAt: string }
 const posts: MPost[] = [];
+const chat: ChatMessageDto[] = [];
+let chatId = 1;
 const postDto = (p: MPost): PostDto => ({
   id: p.id, kind: "offline_auction", author: userById(p.authorId), artwork: artworkSummary(artworks.get(p.artworkId)!),
   title: p.title, body: p.body, place: p.place, startsAt: p.startsAt, minPrice: p.minPrice, createdAt: p.createdAt,
@@ -433,6 +435,17 @@ const mockApi: Api = {
 
   getAuction: (id: number) => delay(auctionDetail(auctions.get(id) ?? fail(404, "NOT_FOUND", "Nie znaleziono aukcji"))),
 
+  async postChatMessage(auctionId: number, text: string): Promise<ChatMessageDto> {
+    const user = requireUser();
+    if (!auctions.has(auctionId)) fail(404, "NOT_FOUND", "Nie znaleziono aukcji");
+    const clean = text.split(/\s+/).filter(Boolean).join(" ");
+    if (!clean) fail(400, "EMPTY_MESSAGE", "Wiadomość jest pusta");
+    const m: ChatMessageDto = { id: chatId++, auctionId, user, text: clean.slice(0, 500), createdAt: iso(now()) };
+    chat.push(m);
+    emit(auctionId, { type: "chat", message: m });
+    return delay(m, 120);
+  },
+
   async placeBid(id: number, req: PlaceBidRequest): Promise<BidDto> {
     const user = requireUser();
     await delay(null, 200);
@@ -492,7 +505,7 @@ const mockApi: Api = {
     set.add(onMessage);
     const a = auctions.get(id);
     const timer = setTimeout(() => {
-      if (a) onMessage(structuredClone({ type: "snapshot", auction: auctionDetail(a) } as const));
+      if (a) onMessage(structuredClone({ type: "snapshot", auction: auctionDetail(a), chat: chat.filter((m) => m.auctionId === id).slice(-50) } as const));
       else onClose?.(WS_CLOSE_NOT_FOUND);
     }, 150);
     return () => {

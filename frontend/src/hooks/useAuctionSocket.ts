@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WS_CLOSE_NOT_FOUND } from "../api/client";
 import { api } from "../api/endpoints";
-import type { AuctionDetailDto, AuctionWsMessage, BidDto, UserDto } from "../api/types";
+import type { AuctionDetailDto, AuctionWsMessage, BidDto, ChatMessageDto, UserDto } from "../api/types";
 
 export interface AuctionEnded {
   winner: UserDto | null;
@@ -13,6 +13,7 @@ export interface AuctionSocketState {
   lastBid: BidDto | null;
   ended: AuctionEnded | null;
   connected: boolean;
+  chat: ChatMessageDto[]; // oldest first
 }
 
 /** State tagged with the auction it belongs to, so a new auctionId never shows the previous auction. */
@@ -21,7 +22,8 @@ interface Tagged extends AuctionSocketState {
 }
 
 const MAX_BIDS = 10;
-const empty = (auctionId: number | null): Tagged => ({ auctionId, auction: null, lastBid: null, ended: null, connected: false });
+const MAX_CHAT = 100;
+const empty = (auctionId: number | null): Tagged => ({ auctionId, auction: null, lastBid: null, ended: null, connected: false, chat: [] });
 
 function applyBid(s: Tagged, msg: Extract<AuctionWsMessage, { type: "bid" }>): Tagged {
   if (!s.auction) return s;
@@ -60,10 +62,12 @@ export function useAuctionSocket(auctionId: number | null): AuctionSocketState &
         (msg) => {
           if (msg.type === "snapshot") {
             endedRef.current = msg.auction.status === "ended";
-            update((s) => ({ ...s, auction: msg.auction, connected: true }));
+            update((s) => ({ ...s, auction: msg.auction, connected: true, chat: msg.chat ?? s.chat }));
           } else if (msg.type === "bid") {
             update((s) => applyBid(s, msg));
-          } else {
+          } else if (msg.type === "chat") {
+            update((s) => (s.chat.some((m) => m.id === msg.message.id) ? s : { ...s, chat: [...s.chat, msg.message].slice(-MAX_CHAT) }));
+          } else if (msg.type === "ended") {
             endedRef.current = true;
             update((s) => ({
               ...s,

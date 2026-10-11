@@ -215,9 +215,27 @@ class PlaceBidRequest(CamelModel):
 
 
 # ===== WebSocket: server -> client only =====
+class ChatMessageDto(CamelModel):
+    id: int
+    auction_id: int
+    user: UserDto
+    text: str
+    created_at: UtcDateTime
+
+
+class PostChatMessageRequest(CamelModel):
+    text: str = Field(min_length=1, max_length=500)
+
+
 class WsSnapshot(CamelModel):
     type: Literal["snapshot"] = "snapshot"
     auction: AuctionDetailDto
+    chat: list[ChatMessageDto] = []  # the latest messages, oldest first
+
+
+class WsChat(CamelModel):
+    type: Literal["chat"] = "chat"
+    message: ChatMessageDto
 
 
 class WsBid(CamelModel):
