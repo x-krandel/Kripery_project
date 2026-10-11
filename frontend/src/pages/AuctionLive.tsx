@@ -5,13 +5,13 @@ import { ApiRequestError } from "../api/client";
 import { api } from "../api/endpoints";
 import type { ChatMessageDto } from "../api/types";
 import { ArtworkFrame } from "../components/ArtworkFrame";
-import { ArrowLeft, ChatBubble, Close, LiveDot, ShieldCheck } from "../components/Icons";
+import { ArrowLeft, ChatBubble, Close, LiveDot, Share, ShieldCheck } from "../components/Icons";
 import { useToast } from "../hooks/useToast";
 import { Avatar } from "../components/Avatar";
 import { useAuctionSocket } from "../hooks/useAuctionSocket";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useNow } from "../hooks/useNow";
-import { attribution, formatCountdown, formatPln, secondsLeft, timeAgo } from "../lib/format";
+import { attribution, formatCountdown, formatPln, plural, secondsLeft, timeAgo } from "../lib/format";
 import { isFeminine } from "../lib/labels";
 
 const STEPS = [100, 500, 1000];
@@ -75,7 +75,20 @@ export function AuctionLive() {
         Zaloguj się, aby licytować
       </Link>
     ) : isOwner ? (
-      <p className="m-0 py-3 text-center text-sm font-semibold text-ink-soft">To Twoja aukcja. Aby licytować, zaloguj się na inne konto.</p>
+      // The seller cannot bid on their own lot: show how the sale is going and a way to invite bidders.
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-[15px] font-bold lg:text-base">Twoja aukcja</span>
+          <span className="text-[13px] text-ink-soft lg:text-sm">
+            {!auction ? "Łączenie z licytacją…"
+              : auction.bidCount === 0 ? "Czekamy na pierwszą ofertę"
+              : <>{auction.bidCount} {plural(auction.bidCount, "oferta", "oferty", "ofert")}<span className="max-lg:hidden"> · nowe pojawią się na żywo</span></>}
+          </span>
+        </div>
+        <button type="button" onClick={() => void shareAuction(id, art?.title ?? "", toast)} className="btn-quiet shrink-0 px-4 text-sm">
+          <Share size={16} /> Udostępnij
+        </button>
+      </div>
     ) : (
       <>
         <div role="group" aria-label="Wysokość podbicia" className="grid grid-cols-3 gap-2">
@@ -233,6 +246,21 @@ export function AuctionLive() {
       </div>
     </div>
   );
+}
+
+/** Phones: the system share sheet; desktop (or no Web Share): copy the auction link. */
+async function shareAuction(artworkId: number, title: string, toast: ReturnType<typeof useToast>) {
+  const url = `${window.location.origin}/dziela/${artworkId}/aukcja`;
+  if (navigator.share && window.matchMedia("(pointer: coarse)").matches) {
+    try { await navigator.share({ title, text: `Aukcja na żywo: ${title}`, url }); } catch { /* closed the sheet */ }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    toast("Link do aukcji skopiowany");
+  } catch {
+    toast("Nie udało się skopiować linku.", "error");
+  }
 }
 
 type ChatComposer = { text: string; setText: (t: string) => void; submit: (e: FormEvent) => void; pending: boolean };

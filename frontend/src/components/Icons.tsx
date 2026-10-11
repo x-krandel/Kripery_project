@@ -48,6 +48,7 @@ export const Calendar = (p: P) => <Base {...p}><rect x="4" y="5" width="16" heig
 export const MapPin = (p: P) => <Base {...p}><path d="M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></Base>;
 export const Gavel = (p: P) => <Base {...p}><path d="M14 4l6 6M11 7l6 6M8.5 9.5l6 6M13 5.5l-7.5 7.5 3.5 3.5L16.5 9M4 20h9" /></Base>;
 export const External = (p: P) => <Base strokeWidth={2} {...p}><path d="M7 17L17 7M9 7h8v8" /></Base>;
+export const Share = (p: P) => <Base {...p}><path d="M12 15V4M8 8l4-4 4 4M5 13v5a2 2 0 002 2h10a2 2 0 002-2v-5" /></Base>;
 export const ChatBubble = (p: P) => <Base {...p}><path d="M6 5h12a2 2 0 012 2v8a2 2 0 01-2 2h-7l-4.5 3.5V17H6a2 2 0 01-2-2V7a2 2 0 012-2z" /></Base>;
 
 export function LiveDot({ className = "" }: { className?: string }) {
