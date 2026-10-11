@@ -76,7 +76,12 @@ main { flex: 1; padding: 18px; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
 .text-button { padding: 4px 0; border: 0; background: transparent; color: var(--green); font: 600 11px "DM Sans", sans-serif; cursor: pointer; }
 .upload-label { display: inline-block; margin: 11px 0 0; color: var(--green); font-size: 11px; font-weight: 600; cursor: pointer; }
-
+.query-label { display: block; margin: 12px 0 5px; font-size: 11px; font-weight: 700; }
+.search-hint { margin: 6px 0 12px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.refine-search { margin-top: 10px; }
+.refine-search summary { width: fit-content; color: var(--green); font-size: 11px; font-weight: 600; cursor: pointer; }
+.refine-search[open] { padding: 10px 0 0; }
+.button-secondary { width: 100%; margin-top: 10px; background: transparent; color: var(--green-dark); }
 select, input {
   width: 100%;
   min-height: 38px;
@@ -123,6 +128,11 @@ select:focus, input:focus { outline: 2px solid #8bb9a1; outline-offset: 1px; }
 .source-label { color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: .7px; }
 .result { font-size: 12px; line-height: 1.6; }
 .result-placeholder, .result-message { margin: 0; color: var(--muted); }
+.artwork-profile { margin: 0 0 16px; padding: 14px; border-left: 3px solid #c7a35f; background: #eef1e9; }
+.profile-kicker { margin: 0 0 5px; color: var(--green); font-size: 9px; font-weight: 700; }
+.profile-title { margin: 0; font: 600 20px/1.25 Georgia, serif; overflow-wrap: anywhere; }
+.profile-author { margin: 6px 0 0; color: var(--green-dark); font-size: 12px; font-weight: 600; }
+.profile-details { margin: 6px 0 0; color: var(--muted); font-size: 10px; }
 .artwork-title { margin: 0 0 4px; font: 600 19px/1.3 Georgia, serif; }
 .artwork-byline { margin: 0 0 13px; color: var(--green-dark); font-size: 12px; font-weight: 600; }
 .fact-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 14px; }
@@ -140,19 +150,14 @@ select:focus, input:focus { outline: 2px solid #8bb9a1; outline-offset: 1px; }
 .sources ol { margin: 0; padding-left: 18px; color: var(--muted); }
 .sources li { margin: 0 0 6px; font-size: 10px; line-height: 1.5; }
 .sources a { color: var(--green); font-weight: 600; }
-.api-settings { margin-top: 16px; padding: 11px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.api-settings summary { color: var(--green-dark); font-size: 11px; font-weight: 700; cursor: pointer; }
-.api-settings label { display: block; margin: 10px 0 5px; font-size: 10px; font-weight: 600; }
-.key-row { display: flex; gap: 7px; }
-.key-row input { min-width: 0; }
-.hint { margin: 7px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
-
-.settings { margin: 0 0 16px; padding: 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--white); }
-.settings label { display: block; margin-bottom: 6px; font-size: 11px; font-weight: 700; }
-.settings-row { display: flex; gap: 7px; }
-.settings input { min-width: 0; }
-.hint { margin: 6px 0 0; color: var(--muted); font-size: 10px; }
-
+.result-subheading { margin: 15px 0 6px; font: 600 14px/1.3 Georgia, serif; }
+.wiki-extract { margin: 0; color: #384445; line-height: 1.65; }
+.museum-results ol { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.museum-results li { display: grid; grid-template-columns: 54px minmax(0, 1fr); column-gap: 9px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--white); }
+.museum-results li a { overflow-wrap: anywhere; }
+.museum-thumb { grid-row: span 2; width: 54px; height: 54px; object-fit: cover; border-radius: 2px; background: #edf0e9; }
+.museum-meta { grid-column: 2; margin: 2px 0 0; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.result-subheading { margin-top: 16px; }
 footer { display: flex; align-items: center; gap: 7px; min-height: 38px; padding: 8px 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #82918a; }
 footer[data-state="busy"] .status-dot { background: var(--orange); }

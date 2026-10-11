@@ -10,53 +10,25 @@ async function sendToTab(tabId, message) {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type !== "GET_ACTIVE_IMAGES") return false;
+  if (message?.type !== "GET_ACTIVE_IMAGES" && message?.type !== "GET_ACTIVE_ARTWORK_META") return false;
 
   chrome.tabs.query({ active: true, lastFocusedWindow: true }).then(async (tabs) => {
     const tab = tabs[0];
     if (!tab?.id) {
-      sendResponse({ images: [], error: "Nie znaleziono aktywnej karty." });
-      return;
-    }
-
-    try {
-      const images = await sendToTab(tab.id, { type: "SCAN_IMAGES" });
-      sendResponse({ images: images ?? [] });
-    } catch {
-      sendResponse({ images: [], error: "Ta strona nie udostępnia obrazów do odczytu." });
-    }
-  });
-
-  return true;
-});
-
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type !== "CAPTURE_SELECTED_IMAGE") return false;
-
-  chrome.tabs.query({ active: true, lastFocusedWindow: true }).then(async (tabs) => {
-    const tab = tabs[0];
-    if (!tab?.id || !tab.windowId) {
       sendResponse({ error: "Nie znaleziono aktywnej karty." });
       return;
     }
 
     try {
-      const rect = await sendToTab(tab.id, {
-        type: "GET_IMAGE_RECT",
-        src: message.src,
-      });
-      if (!rect) {
-        sendResponse({ error: "Obraz nie jest widoczny. Przewiń go na ekran i spróbuj ponownie." });
-        return;
+      if (message.type === "GET_ACTIVE_ARTWORK_META") {
+        const meta = await sendToTab(tab.id, { type: "GET_ARTWORK_META" });
+        sendResponse({ meta });
+      } else {
+        const images = await sendToTab(tab.id, { type: "SCAN_IMAGES" });
+        sendResponse({ images: images ?? [] });
       }
-
-      const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
-        format: "jpeg",
-        quality: 85,
-      });
-      sendResponse({ dataUrl, rect });
     } catch {
-      sendResponse({ error: "Chrome nie mógł przechwycić obrazu z tej karty." });
+      sendResponse({ images: [], error: "Nie można odczytać informacji z tej strony." });
     }
   });
 

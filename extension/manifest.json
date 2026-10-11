@@ -11,7 +11,10 @@
     "tabs"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "https://*.wikipedia.org/*",
+    "https://collectionapi.metmuseum.org/*",
+    "https://api.artic.edu/*",
+    "https://www.artic.edu/*"
   ],
   "background": {
     "service_worker": "background.js",
