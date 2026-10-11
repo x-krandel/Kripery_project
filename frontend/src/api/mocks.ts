@@ -8,7 +8,7 @@ import type {
   AiDescribeRequest, AiDescriptionDto, AuthResponse, LoginRequest, RegisterRequest, ArtworkCategory, ArtworkDetailDto, ArtworkSummaryDto,
   AuctionDetailDto, AuctionStatus, AuctionSummaryDto, AuctionWsMessage, BidDto, CreateArtworkRequest,
   CreateAuctionRequest, LostArtworkDto, LostArtworkMatchDto, NewPassportEventRequest,
-  PassportDto, PassportEventDto, PassportEventType, PlaceBidRequest, StatsDto, UploadDto, UserDto,
+  PassportDto, PassportEventDto, PassportEventType, PlaceBidRequest, SimilarArtworkDto, StatsDto, UploadDto, UserDto,
 } from "./types";
 import type { Api, AuctionListener } from "./endpoints";
 
@@ -381,6 +381,16 @@ const mockApi: Api = {
   },
 
   getArtwork: (id: number) => delay(artworkDetail(getArtworkOr404(id))),
+
+  // No image vectors in the browser: same category first, then the rest, with a made-up score.
+  similarArtworks(id: number, limit = 4): Promise<SimilarArtworkDto[]> {
+    const base = getArtworkOr404(id);
+    const others = [...artworks.values()]
+      .filter((a) => a.id !== id && a.status === "published")
+      .sort((a, b) => Number(b.category === base.category) - Number(a.category === base.category) || a.id - b.id)
+      .slice(0, limit);
+    return delay(others.map((a, i) => ({ ...artworkSummary(a), similarity: Math.round((0.86 - i * 0.04) * 100) / 100 })));
+  },
 
   getPassport(id: number): Promise<PassportDto> {
     const art = getArtworkOr404(id);

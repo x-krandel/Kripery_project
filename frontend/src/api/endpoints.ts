@@ -5,7 +5,7 @@ import { createMockApi } from "./mocks";
 import type {
   AiDescribeRequest, AiDescriptionDto, AuthResponse, LoginRequest, RegisterRequest, ArtworkDetailDto, ArtworkSummaryDto, AuctionDetailDto, AuctionWsMessage,
   BidDto, CreateArtworkRequest, CreateAuctionRequest, LostArtworkDto, NewPassportEventRequest, PassportDto,
-  PassportEventDto, PlaceBidRequest, StatsDto, UploadDto, UserDto,
+  PassportEventDto, PlaceBidRequest, SimilarArtworkDto, StatsDto, UploadDto, UserDto,
 } from "./types";
 
 export type AuctionListener = (msg: AuctionWsMessage) => void;
@@ -22,6 +22,7 @@ export interface Api {
   createArtwork(req: CreateArtworkRequest): Promise<ArtworkDetailDto>;
   getArtwork(id: number): Promise<ArtworkDetailDto>;
   getPassport(id: number): Promise<PassportDto>;
+  similarArtworks(id: number, limit?: number): Promise<SimilarArtworkDto[]>;
   addEvent(id: number, req: NewPassportEventRequest): Promise<PassportEventDto>;
   createAuction(req: CreateAuctionRequest): Promise<AuctionDetailDto>;
   getAuction(id: number): Promise<AuctionDetailDto>;
@@ -48,6 +49,7 @@ const realApi: Api = {
   listArtworks: (ownerId) => request("GET", ownerId == null ? "/artworks" : `/artworks?ownerId=${ownerId}`),
   createArtwork: (req) => request("POST", "/artworks", req),
   getArtwork: (id) => request("GET", `/artworks/${id}`),
+  similarArtworks: (id, limit = 4) => request("GET", `/artworks/${id}/similar?limit=${limit}`),
   getPassport: (id) => request("GET", `/artworks/${id}/passport`),
   addEvent: (id, req) => request("POST", `/artworks/${id}/events`, req),
   createAuction: (req) => request("POST", "/auctions", req),

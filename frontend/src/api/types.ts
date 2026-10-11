@@ -42,6 +42,11 @@ export interface ArtworkSummaryDto {
   lastPrice: number | null; // latest auction's current or final price; null if never auctioned
 }
 
+/** GET /api/artworks/{id}/similar: nearest published works by CLIP image vector. */
+export interface SimilarArtworkDto extends ArtworkSummaryDto {
+  similarity: number; // cosine similarity 0..1
+}
+
 export interface LostArtworkMatchDto {
   lostArtworkId: number;
   title: string;

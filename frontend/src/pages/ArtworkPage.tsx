@@ -9,6 +9,7 @@ import { ArtworkFrame } from "../components/ArtworkFrame";
 import { ChainPanel, IntegrityBadge, LossCheckBadge } from "../components/Badges";
 import { Plus, ShieldAlert } from "../components/Icons";
 import { Modal } from "../components/Modal";
+import { LotCard } from "../components/LotCard";
 import { PassportTimeline } from "../components/PassportTimeline";
 import { QrBlock } from "../components/QrBlock";
 import { Skeleton } from "../components/Skeleton";
@@ -99,7 +100,33 @@ export function ArtworkPage() {
           <div className="flex flex-col gap-6">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
         )}
       </section>
+
+      {art && <SimilarWorks artworkId={art.id} />}
     </main>
+  );
+}
+
+/** Nearest works by CLIP image vector (pgvector), not by title or tags. */
+function SimilarWorks({ artworkId }: { artworkId: number }) {
+  const { data = [] } = useQuery({ queryKey: ["similar", artworkId], queryFn: () => api.similarArtworks(artworkId, 4) });
+  if (data.length === 0) return null;
+  return (
+    <section aria-labelledby="similar-title" className="flex flex-col gap-9">
+      <div className="flex flex-col gap-2.5 border-b border-ink pb-6">
+        <h2 id="similar-title" className="m-0 font-display text-5xl font-medium leading-none sm:text-[56px]">Podobne dzieła</h2>
+        <p className="m-0 max-w-[620px] text-[15px] leading-normal text-ink-soft">
+          Dobrane po samym obrazie: porównujemy wektory CLIP zdjęć w bazie (pgvector), nie tytuły ani opisy.
+        </p>
+      </div>
+      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        {data.map((a) => (
+          <div key={a.id} className="flex min-w-0 flex-col gap-2">
+            <LotCard artwork={a} />
+            <span className="text-[13px] text-muted">Podobieństwo obrazu: <strong className="text-ink">{Math.round(a.similarity * 100)}%</strong></span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

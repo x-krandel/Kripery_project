@@ -59,6 +59,10 @@ class ArtworkSummaryDto(CamelModel):
     last_price: int | None = None
 
 
+class SimilarArtworkDto(ArtworkSummaryDto):
+    similarity: float  # cosine similarity of the CLIP image vectors, 0..1
+
+
 class LostArtworkMatchDto(CamelModel):
     lost_artwork_id: int
     title: str
