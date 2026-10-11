@@ -3,56 +3,61 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Kripery | Kontekst dzieła</title>
+    <title>Rodowód | Kontekst dzieła</title>
     <link rel="stylesheet" href="sidepanel.css">
   </head>
   <body>
     <header class="topbar">
-      <div class="brand-mark" aria-hidden="true">K</div>
-      <div>
-        <p class="eyebrow">RODOWÓD · KULTURA</p>
-        <h1>Kontekst dzieła</h1>
+      <div class="brand">
+        <span class="logo">Rodowód</span>
+        <span class="eyebrow">Kontekst dzieła</span>
       </div>
+      <button class="btn btn-quiet btn-sm" id="refresh-images" type="button">Skanuj stronę</button>
     </header>
 
     <main>
       <section class="image-section" aria-labelledby="image-heading">
-        <div class="section-heading">
-          <h2 id="image-heading">Obraz ze strony</h2>
-          <button class="text-button" id="refresh-images" type="button">Skanuj stronę</button>
-        </div>
+        <h2 class="section-title" id="image-heading">Obraz ze strony</h2>
         <label class="visually-hidden" for="image-select">Wybierz obraz ze strony</label>
-        <select id="image-select" aria-label="Wybierz obraz ze strony">
+        <select class="field" id="image-select" aria-label="Wybierz obraz ze strony">
           <option value="">Wybierz zeskanowany obraz</option>
         </select>
-        <label class="upload-label" for="image-file">Albo wybierz obraz z urządzenia</label>
-        <input class="visually-hidden" id="image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif">
-        <div class="preview" id="preview">
-          <div class="preview-empty" id="preview-empty">Przeskanuj stronę. Wykryty tytuł i autor posłużą do znalezienia krótkiego kontekstu.</div>
-          <img id="preview-image" alt="" hidden>
+
+        <div class="frame" id="preview">
+          <div class="frame-inner">
+            <div class="preview-empty" id="preview-empty">Przeskanuj stronę. Wykryty tytuł i autor posłużą do znalezienia krótkiego kontekstu.</div>
+            <img id="preview-image" alt="" hidden>
+          </div>
         </div>
         <p class="filename" id="filename">Nie wybrano obrazu</p>
+
+        <div class="actions">
+          <label class="link" for="image-file">Wybierz obraz z urządzenia</label>
+          <input class="visually-hidden" id="image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif">
+        </div>
+
         <details class="refine-search">
-          <summary>Popraw tytuł lub autora</summary>
-          <label class="query-label" for="search-query">Tytuł lub temat</label>
-          <input id="search-query" type="search" autocomplete="off" placeholder="Np. Dziewczyna z perłą">
-          <label class="query-label" for="author-query">Autor</label>
-          <input id="author-query" type="search" autocomplete="off" placeholder="Np. Johannes Vermeer">
-          <button class="button button-secondary" id="search-button" type="button" disabled>Szukaj ponownie</button>
+          <summary class="link">Popraw tytuł lub autora</summary>
+          <div class="refine-body">
+            <label class="field-label" for="search-query">Tytuł lub temat</label>
+            <input class="field" id="search-query" type="search" autocomplete="off" placeholder="np. Dziewczyna z perłą">
+            <label class="field-label" for="author-query">Autor</label>
+            <input class="field" id="author-query" type="search" autocomplete="off" placeholder="np. Johannes Vermeer">
+            <button class="btn btn-primary btn-block" id="search-button" type="button" disabled>Szukaj ponownie</button>
+          </div>
         </details>
-        <p class="search-hint">Tytuł i autor są wykrywane ze strony. Wybierz obraz, by zobaczyć kontekst z Wikipedii.</p>
+        <p class="search-hint">Tytuł i autor są wykrywane ze strony. Wybierz obraz, by zobaczyć kontekst z Wikipedii i muzeów.</p>
       </section>
 
       <section class="result-section" aria-live="polite" aria-busy="false">
-        <div class="section-heading result-heading">
-          <h2>Kontekst dzieła</h2>
+        <div class="section-heading">
+          <h2 class="section-title">Kontekst dzieła</h2>
           <span class="source-label" id="source-label">WIKIPEDIA · MUZEA</span>
         </div>
         <div class="result" id="result">
           <p class="result-placeholder">Skanowanie strony uzupełni tytuł i autora. Wybierz obraz, aby zobaczyć zwięzłe streszczenia i rekordy źródłowe.</p>
         </div>
       </section>
-
     </main>
 
     <footer>
@@ -60,6 +65,7 @@
       <span id="connection-status">Gotowe do sprawdzenia</span>
     </footer>
 
+    <script src="lookup.js"></script>
     <script src="sidepanel.js"></script>
   </body>
 </html>
