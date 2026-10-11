@@ -1,9 +1,10 @@
 """AUTO_SEED=true: make a fresh hosted deployment demo-ready without a shell.
 
-Runs in the background after startup and never deletes anything:
+Runs in the background after startup and never touches users, artworks or bids:
 - copies demo and lost images into MEDIA_DIR when they are missing (a database
   seeded from a laptop points at /media files that the server does not have);
-- fills lost_artworks from data/lost when the table is empty;
+- syncs lost_artworks with data/lost (see scripts.index_lost; this part also
+  runs without AUTO_SEED);
 - runs the seed when there are no users yet;
 - adds the public-domain gallery (data/gallery) works that are not in the database yet.
 """
@@ -15,7 +16,7 @@ from sqlalchemy import func, select
 
 from app.config import settings
 from app.db import SessionLocal
-from app.models import LostArtwork, User
+from app.models import User
 
 log = logging.getLogger("rodowod.bootstrap")
 
@@ -39,20 +40,25 @@ def restore_media() -> int:
     return copied
 
 
+def sync_lost() -> None:
+    from scripts.index_lost import sync
+
+    r = sync()
+    log.info("lost dataset synced: %d added, %d updated, %d deleted, %d skipped",
+             r.added, r.updated, r.deleted, r.skipped)
+
+
 def run() -> None:
-    from scripts.index_lost import index
     from scripts.seed import seed
     from scripts.seed_gallery import seed_gallery
 
     copied = restore_media()
     if copied:
         log.info("restored %d media files from %s", copied, settings.data_dir)
+    # Before the seed: seeded artworks are checked against the lost dataset.
+    sync_lost()
     with SessionLocal() as db:
-        lost = db.scalar(select(func.count()).select_from(LostArtwork))
         users = db.scalar(select(func.count()).select_from(User))
-    if not lost:
-        added, skipped = index()
-        log.info("indexed the lost dataset: %d added, %d skipped", added, skipped)
     if not users:
         log.info("seeded: %d auctions", seed())
     if added := seed_gallery():
