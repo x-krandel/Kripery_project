@@ -7,10 +7,12 @@ import { api } from "../api/endpoints";
 import type { ArtworkDetailDto } from "../api/types";
 import { ArtworkFrame } from "../components/ArtworkFrame";
 import { ChainPanel, IntegrityBadge, LossCheckBadge } from "../components/Badges";
-import { Plus, ShieldAlert } from "../components/Icons";
+import { Gavel, Plus, ShieldAlert } from "../components/Icons";
 import { Modal } from "../components/Modal";
 import { LotCard } from "../components/LotCard";
 import { PassportTimeline } from "../components/PassportTimeline";
+import { PostCard } from "../components/PostCard";
+import { OfflineAuctionModal } from "../components/OfflineAuctionModal";
 import { QrBlock } from "../components/QrBlock";
 import { Skeleton } from "../components/Skeleton";
 import { useToast } from "../hooks/useToast";
@@ -63,6 +65,7 @@ export function ArtworkPage() {
             </div>
           )}
           {art && <AuctionBox art={art} />}
+          {art && <ArtworkInvitations artworkId={art.id} />}
           {art?.story && (
             <blockquote className="m-0 flex flex-col gap-3">
               <span className="eyebrow">Historia od {isFeminine(art.owner.name) ? "właścicielki" : "właściciela"}</span>
@@ -103,6 +106,25 @@ export function ArtworkPage() {
 
       {art && <SimilarWorks artworkId={art.id} />}
     </main>
+  );
+}
+
+/** Upcoming offline-auction invitations for this work (posts by its owner). */
+function ArtworkInvitations({ artworkId }: { artworkId: number }) {
+  const { userId } = useCurrentUser();
+  const qc = useQueryClient();
+  const { data = [] } = useQuery({ queryKey: ["posts", "artwork", artworkId], queryFn: () => api.listPosts({ artworkId }) });
+  const del = useMutation({ mutationFn: api.deletePost, onSuccess: () => qc.invalidateQueries({ queryKey: ["posts"] }) });
+  const now = useNow();
+  const upcoming = data.filter((p) => p.startsAt && new Date(p.startsAt).getTime() > now);
+  if (upcoming.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-4">
+      {upcoming.map((p) => (
+        <PostCard key={p.id} post={p} showArtwork={false}
+          onDelete={p.author.id === userId ? () => del.mutate(p.id) : undefined} deleting={del.isPending && del.variables === p.id} />
+      ))}
+    </div>
   );
 }
 
@@ -157,6 +179,7 @@ function AuctionBox({ art }: { art: ArtworkDetailDto }) {
   const summary = art.auction;
   const live = useAuctionSocket(summary?.status === "live" ? summary.id : null);
   const [open, setOpen] = useState(false);
+  const [offlineOpen, setOfflineOpen] = useState(false);
   const isOwner = art.ownerId === userId;
   const qc = useQueryClient();
 
@@ -176,9 +199,13 @@ function AuctionBox({ art }: { art: ArtworkDetailDto }) {
           {art.status === "held" ? "Aukcję można wystawić dopiero po weryfikacji pochodzenia." : "Wystaw je na licytację – paszport pójdzie razem z nim."}
         </span>
         <button type="button" disabled={art.status === "held"} onClick={() => setOpen(true)} className="btn-primary min-h-14 text-[17px] disabled:opacity-40">
-          Wystaw na aukcję
+          Wystaw na aukcję online
+        </button>
+        <button type="button" disabled={art.status === "held"} onClick={() => setOfflineOpen(true)} className="btn-outline min-h-12 disabled:opacity-40">
+          <Gavel size={18} /> Aukcja stacjonarna: zaproszenie
         </button>
         <CreateAuctionModal open={open} onClose={() => setOpen(false)} artworkId={art.id} />
+        <OfflineAuctionModal open={offlineOpen} onClose={() => setOfflineOpen(false)} artworkId={art.id} />
       </div>
     );
   }

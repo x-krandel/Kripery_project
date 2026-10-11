@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { mediaUrl } from "../api/client";
 import { api } from "../api/endpoints";
@@ -8,6 +8,8 @@ import { LiveChip, VerifiedPill } from "../components/Badges";
 import { ArrowRight } from "../components/Icons";
 import { Skeleton } from "../components/Skeleton";
 import { Avatar } from "../components/Avatar";
+import { PostCard } from "../components/PostCard";
+import { useCurrentUser } from "../hooks/useCurrentUser";
 import { attribution, formatPln, plural } from "../lib/format";
 import { roleLabel } from "../lib/labels";
 
@@ -116,6 +118,14 @@ export function CollectionPage() {
   const owner = users.find((u) => u.id === userId);
   const { data, isLoading } = useQuery({ queryKey: ["artworks", "owner", userId], queryFn: () => api.listArtworks(userId) });
   const works = publicWorks(data);
+  const [params, setParams] = useSearchParams();
+  const tab = params.get("tab") === "posty" ? "posts" : "works";
+  const { userId: me } = useCurrentUser();
+  const qc = useQueryClient();
+  const postsQ = useQuery({ queryKey: ["posts", "author", userId], queryFn: () => api.listPosts({ authorId: userId }) });
+  const delPost = useMutation({ mutationFn: api.deletePost, onSuccess: () => qc.invalidateQueries({ queryKey: ["posts"] }) });
+  const posts = postsQ.data ?? [];
+  const setTab = (t: "works" | "posts") => setParams((p) => { if (t === "posts") p.set("tab", "posty"); else p.delete("tab"); return p; }, { replace: true });
   const onAuction = works.filter((a) => a.auction?.status === "live").length;
   const verified = works.filter((a) => a.verified).length;
 
@@ -146,7 +156,33 @@ export function CollectionPage() {
         </div>
       </section>
 
-      <section className="container-page flex flex-col gap-20 pt-16">
+      <div className="container-page pt-8">
+        <div role="tablist" aria-label="Zawartość profilu" className="flex gap-2 border-b border-line">
+          {([["works", `Dzieła (${works.length})`], ["posts", `Posty (${posts.length})`]] as const).map(([k, label]) => (
+            <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+              className={`-mb-px min-h-12 border-b-2 px-4 text-[15px] font-semibold ${tab === k ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {tab === "posts" && (
+        <section className="container-page flex flex-col gap-6 pt-10 [&>*]:max-w-[880px]">
+          {postsQ.isLoading && <Skeleton className="h-56 w-full" />}
+          {posts.map((p) => (
+            <PostCard key={p.id} post={p}
+              onDelete={p.author.id === me ? () => delPost.mutate(p.id) : undefined} deleting={delPost.isPending && delPost.variables === p.id} />
+          ))}
+          {!postsQ.isLoading && posts.length === 0 && (
+            <p className="m-0 rounded-2xl border border-dashed border-line-strong p-12 text-center text-ink-soft">
+              {me === userId ? "Nie masz jeszcze postów. Zaproszenie na aukcję stacjonarną dodasz na stronie swojego dzieła." : "Ten kolekcjoner nie ma jeszcze postów."}
+            </p>
+          )}
+        </section>
+      )}
+
+      {tab === "works" && <section className="container-page flex flex-col gap-20 pt-16">
         {isLoading && <Skeleton className="h-[480px] w-full" />}
         {works.map((a, i) => (
           <article key={a.id} className={`flex flex-wrap items-center gap-x-16 gap-y-8 ${i % 2 ? "flex-row-reverse" : ""}`}>
@@ -171,7 +207,7 @@ export function CollectionPage() {
         {!isLoading && works.length === 0 && (
           <p className="m-0 rounded-2xl border border-dashed border-line-strong p-12 text-center text-ink-soft">Ta kolekcja nie ma jeszcze publicznych dzieł.</p>
         )}
-      </section>
+      </section>}
     </main>
   );
 }

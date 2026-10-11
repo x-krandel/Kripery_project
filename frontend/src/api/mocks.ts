@@ -7,7 +7,7 @@ import { ApiRequestError, getApiToken, WS_CLOSE_NOT_FOUND } from "./client";
 import type {
   AiDescribeRequest, AiDescriptionDto, AuthResponse, LoginRequest, RegisterRequest, ArtworkCategory, ArtworkDetailDto, ArtworkSummaryDto,
   AuctionDetailDto, AuctionStatus, AuctionSummaryDto, AuctionWsMessage, BidDto, CreateArtworkRequest,
-  CreateAuctionRequest, LostArtworkDto, LostArtworkMatchDto, NewPassportEventRequest,
+  CreateAuctionRequest, CreateOfflineAuctionRequest, LostArtworkDto, LostArtworkMatchDto, NewPassportEventRequest, PostDto,
   PassportDto, PassportEventDto, PassportEventType, PlaceBidRequest, SimilarArtworkDto, StatsDto, UploadDto, UserDto,
 } from "./types";
 import type { Api, AuctionListener } from "./endpoints";
@@ -77,7 +77,13 @@ const events: MEvent[] = [];
 const auctions = new Map<number, MAuction>();
 const bids: MBid[] = [];
 const uploads = new Map<string, { imageUrl: string; name: string }>();
-const ids = { artwork: 1, event: 1, auction: 1, bid: 1 };
+const ids = { artwork: 1, event: 1, auction: 1, bid: 1, post: 1 };
+interface MPost { id: number; authorId: number; artworkId: number; title: string; body: string; place: string; startsAt: string; minPrice: number; createdAt: string }
+const posts: MPost[] = [];
+const postDto = (p: MPost): PostDto => ({
+  id: p.id, kind: "offline_auction", author: userById(p.authorId), artwork: artworkSummary(artworks.get(p.artworkId)!),
+  title: p.title, body: p.body, place: p.place, startsAt: p.startsAt, minPrice: p.minPrice, createdAt: p.createdAt,
+});
 
 const REG_TITLE = "Dodano do Rodowodu";
 const REG_CLEAR = "Automatyczne porównanie z bazą strat wojennych MKiDN: brak dopasowań";
@@ -436,6 +442,37 @@ const mockApi: Api = {
   },
 
   listLost: (limit = 50) => delay(lost.slice(0, limit)),
+
+  listPosts({ authorId, artworkId }: { authorId?: number; artworkId?: number }): Promise<PostDto[]> {
+    const items = posts
+      .filter((p) => (authorId == null || p.authorId === authorId) && (artworkId == null || p.artworkId === artworkId))
+      .filter((p) => isVisible(artworks.get(p.artworkId)!) || p.authorId === currentUserId())
+      .sort((a, b) => b.id - a.id);
+    return delay(items.map(postDto));
+  },
+
+  async createOfflineAuction(req: CreateOfflineAuctionRequest): Promise<PostDto> {
+    const user = requireUser();
+    const art = getArtworkOr404(req.artworkId);
+    if (art.ownerId !== user.id) fail(403, "NOT_OWNER", "To dzieło należy do innego użytkownika");
+    if (art.status === "held") fail(409, "ARTWORK_HELD", "Publikacja dzieła jest wstrzymana, nie można wystawić go na aukcję");
+    if (new Date(req.startsAt).getTime() <= Date.now()) fail(400, "INVALID_DATE", "Termin aukcji musi być w przyszłości");
+    const p: MPost = {
+      id: ids.post++, authorId: user.id, artworkId: art.id, title: `Aukcja stacjonarna: ${art.title}`, body: req.body.trim(),
+      place: req.place.trim(), startsAt: iso(new Date(req.startsAt)), minPrice: req.minPrice, createdAt: iso(now()),
+    };
+    posts.push(p);
+    return delay(postDto(p));
+  },
+
+  async deletePost(id: number): Promise<void> {
+    const user = requireUser();
+    const i = posts.findIndex((p) => p.id === id);
+    if (i < 0) fail(404, "NOT_FOUND", "Nie znaleziono posta");
+    if (posts[i].authorId !== user.id) fail(403, "NOT_AUTHOR", "To nie jest Twój post");
+    posts.splice(i, 1);
+    return delay(undefined);
+  },
 
   stats(): Promise<StatsDto> {
     const published = [...artworks.values()].filter((a) => a.status === "published");

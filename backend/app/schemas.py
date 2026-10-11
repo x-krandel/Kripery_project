@@ -130,6 +130,31 @@ class LostArtworkDto(CamelModel):
     image_url: str
 
 
+PostKind = Literal["offline_auction"]
+
+
+class PostDto(CamelModel):
+    id: int
+    kind: PostKind
+    author: UserDto
+    artwork: ArtworkSummaryDto | None
+    title: str
+    body: str
+    place: str
+    starts_at: UtcDateTime | None
+    min_price: int | None
+    created_at: UtcDateTime
+
+
+class CreateOfflineAuctionRequest(CamelModel):
+    """Invitation to an in-person auction of one of the author's works; published as a post at once."""
+    artwork_id: int
+    starts_at: datetime
+    place: str = Field(min_length=3, max_length=300)
+    min_price: int = Field(gt=0)
+    body: str = Field(default="", max_length=3000)
+
+
 class StatsDto(CamelModel):
     """Live numbers for the home page, all counted from the database."""
     artworks: int  # published works with a passport

@@ -106,6 +106,29 @@ export interface AuctionDetailDto extends AuctionSummaryDto {
   bids: BidDto[]; // last 10, newest first
 }
 
+/** A post on the author's profile. Today only invitations to an offline (in-person) auction. */
+export interface PostDto {
+  id: number;
+  kind: "offline_auction";
+  author: UserDto;
+  artwork: ArtworkSummaryDto | null;
+  title: string;
+  body: string;
+  place: string;
+  startsAt: string | null;
+  minPrice: number | null;
+  createdAt: string;
+}
+
+/** POST /api/posts/offline-auction: published as a post at once. */
+export interface CreateOfflineAuctionRequest {
+  artworkId: number;
+  startsAt: string; // ISO, in the future
+  place: string;
+  minPrice: number;
+  body: string;
+}
+
 /** GET /api/stats: live numbers for the home page, counted from the database. */
 export interface StatsDto {
   artworks: number;

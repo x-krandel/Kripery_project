@@ -44,6 +44,9 @@ export const Upload = (p: P) => (
 export const Sparkle = (p: P) => (
   <Base {...p}><path d="M12 3l1.8 4.6L18 9.4l-4.2 1.8L12 16l-1.8-4.8L6 9.4l4.2-1.8z" /><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" /></Base>
 );
+export const Calendar = (p: P) => <Base {...p}><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16" /></Base>;
+export const MapPin = (p: P) => <Base {...p}><path d="M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></Base>;
+export const Gavel = (p: P) => <Base {...p}><path d="M14 4l6 6M11 7l6 6M8.5 9.5l6 6M13 5.5l-7.5 7.5 3.5 3.5L16.5 9M4 20h9" /></Base>;
 export const External = (p: P) => <Base strokeWidth={2} {...p}><path d="M7 17L17 7M9 7h8v8" /></Base>;
 
 export function LiveDot({ className = "" }: { className?: string }) {

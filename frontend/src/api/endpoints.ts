@@ -4,7 +4,7 @@ import { request, USE_MOCKS, wsUrl } from "./client";
 import { createMockApi } from "./mocks";
 import type {
   AiDescribeRequest, AiDescriptionDto, AuthResponse, LoginRequest, RegisterRequest, ArtworkDetailDto, ArtworkSummaryDto, AuctionDetailDto, AuctionWsMessage,
-  BidDto, CreateArtworkRequest, CreateAuctionRequest, LostArtworkDto, NewPassportEventRequest, PassportDto,
+  BidDto, CreateArtworkRequest, CreateAuctionRequest, CreateOfflineAuctionRequest, PostDto, LostArtworkDto, NewPassportEventRequest, PassportDto,
   PassportEventDto, PlaceBidRequest, SimilarArtworkDto, StatsDto, UploadDto, UserDto,
 } from "./types";
 
@@ -29,6 +29,9 @@ export interface Api {
   placeBid(id: number, req: PlaceBidRequest): Promise<BidDto>;
   listLost(limit?: number): Promise<LostArtworkDto[]>;
   stats(): Promise<StatsDto>;
+  listPosts(filter: { authorId?: number; artworkId?: number }): Promise<PostDto[]>;
+  createOfflineAuction(req: CreateOfflineAuctionRequest): Promise<PostDto>;
+  deletePost(id: number): Promise<void>;
   /** Opens the auction stream; returns a function that closes it. `onClose` fires on unexpected
    *  disconnect with the close code (4404: no such auction). */
   subscribeAuction(id: number, onMessage: AuctionListener, onClose?: (code: number) => void): () => void;
@@ -57,6 +60,14 @@ const realApi: Api = {
   placeBid: (id, req) => request("POST", `/auctions/${id}/bids`, req),
   listLost: (limit = 50) => request("GET", `/lost?limit=${limit}`),
   stats: () => request("GET", "/stats"),
+  listPosts: ({ authorId, artworkId }) => {
+    const q = new URLSearchParams();
+    if (authorId != null) q.set("authorId", String(authorId));
+    if (artworkId != null) q.set("artworkId", String(artworkId));
+    return request("GET", `/posts?${q}`);
+  },
+  createOfflineAuction: (req) => request("POST", "/posts/offline-auction", req),
+  deletePost: (id) => request<void>("DELETE", `/posts/${id}`),
 
   subscribeAuction(id, onMessage, onClose) {
     const ws = new WebSocket(wsUrl(`/ws/auctions/${id}`));
