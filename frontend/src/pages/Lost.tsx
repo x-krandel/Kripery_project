@@ -1,15 +1,35 @@
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useRef } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/endpoints";
 import { ArtworkFrame } from "../components/ArtworkFrame";
-import { External, Search, ShieldCheck } from "../components/Icons";
+import { ArrowLeft, ArrowRight, External, Search, ShieldCheck } from "../components/Icons";
 import { LotCardSkeleton } from "../components/Skeleton";
 import { plural } from "../lib/format";
 
+const PAGE_SIZE = 50;
+
 /** C5, "Szukamy": war losses from the MKiDN database that the platform watches for. */
 export function Lost() {
-  const { data, isLoading, isError } = useQuery({ queryKey: ["lost"], queryFn: () => api.listLost(60) });
+  const [params, setParams] = useSearchParams();
+  const page = Math.max(1, Number(params.get("strona")) || 1);
+  const listTop = useRef<HTMLDivElement>(null);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["lost", page],
+    queryFn: () => api.listLost(PAGE_SIZE, (page - 1) * PAGE_SIZE),
+    placeholderData: keepPreviousData,
+  });
+  const { data: stats } = useQuery({ queryKey: ["stats"], queryFn: api.stats });
   const items = data ?? [];
+  const total = stats?.lostIndexed ?? items.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // Without stats a full page is the only hint that another one follows.
+  const hasNext = stats ? page < pages : items.length === PAGE_SIZE;
+
+  const goTo = (p: number) => {
+    setParams(p > 1 ? { strona: String(p) } : {});
+    listTop.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <main>
@@ -33,10 +53,10 @@ export function Lost() {
       </section>
 
       <section className="container-page flex flex-col gap-10 pb-28 pt-14">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-5">
+        <div ref={listTop} className="flex scroll-mt-24 flex-wrap items-center justify-between gap-4 border-b border-line pb-5">
           <p className="m-0 flex items-center gap-2 text-[15px] text-ink-soft">
             <Search size={18} className="text-accent" />
-            {isLoading ? "Wczytuję…" : `${items.length} ${plural(items.length, "obiekt", "obiekty", "obiektów")} w naszym indeksie porównawczym`}
+            {isLoading ? "Wczytuję…" : `${total} ${plural(total, "obiekt", "obiekty", "obiektów")} w naszym indeksie porównawczym`}
           </p>
           <a href="https://dzielautracone.gov.pl" target="_blank" rel="noreferrer"
             className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-accent no-underline">
@@ -69,7 +89,21 @@ export function Lost() {
             ))}
         </div>
 
-        {!isLoading && !isError && items.length === 0 && (
+        {!isLoading && (page > 1 || hasNext) && (
+          <nav aria-label="Strony indeksu" className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
+            <button type="button" onClick={() => goTo(page - 1)} disabled={page <= 1}
+              className="btn-quiet min-h-11 px-5 text-sm disabled:invisible">
+              <ArrowLeft size={16} /> Poprzednia
+            </button>
+            <span className="text-sm text-ink-soft">Strona {page}{stats ? ` z ${pages}` : ""}</span>
+            <button type="button" onClick={() => goTo(page + 1)} disabled={!hasNext}
+              className="btn-quiet min-h-11 px-5 text-sm disabled:invisible">
+              Następna <ArrowRight size={16} />
+            </button>
+          </nav>
+        )}
+
+        {!isLoading && !isError && items.length === 0 && page === 1 && (
           <p className="m-0 rounded-2xl border border-dashed border-line-strong p-12 text-center text-ink-soft">
             Indeks jest pusty. Uruchom <code className="font-mono">scripts.index_lost</code> na backendzie.
           </p>
