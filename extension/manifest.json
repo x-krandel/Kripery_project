@@ -1,8 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "Kripery - Author & Artwork Detector",
+  "name": "Rodowód – kontekst dzieła",
   "version": "1.0",
-  "description": "Detekcja autorska i wzbogacanie danych AI",
+  "description": "Rozpoznaje tytuł i autora dzieła na stronie i pokazuje kontekst z Wikipedii oraz katalogów muzeów.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
   "permissions": [
     "sidePanel",
     "storage",
@@ -31,6 +37,12 @@
     "default_path": "sidepanel/sidepanel.html"
   },
   "action": {
-    "default_title": "Otwórz panel Kripery"
+    "default_title": "Otwórz panel Rodowód",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
   }
 }
