@@ -28,7 +28,7 @@ export interface Api {
   getAuction(id: number): Promise<AuctionDetailDto>;
   placeBid(id: number, req: PlaceBidRequest): Promise<BidDto>;
   postChatMessage(auctionId: number, text: string): Promise<ChatMessageDto>;
-  listLost(limit?: number): Promise<LostArtworkDto[]>;
+  listLost(limit?: number, offset?: number): Promise<LostArtworkDto[]>;
   stats(): Promise<StatsDto>;
   listPosts(filter: { authorId?: number; artworkId?: number }): Promise<PostDto[]>;
   createOfflineAuction(req: CreateOfflineAuctionRequest): Promise<PostDto>;
@@ -60,7 +60,7 @@ const realApi: Api = {
   getAuction: (id) => request("GET", `/auctions/${id}`),
   placeBid: (id, req) => request("POST", `/auctions/${id}/bids`, req),
   postChatMessage: (auctionId, text) => request("POST", `/auctions/${auctionId}/messages`, { text }),
-  listLost: (limit = 50) => request("GET", `/lost?limit=${limit}`),
+  listLost: (limit = 50, offset = 0) => request("GET", `/lost?limit=${limit}&offset=${offset}`),
   stats: () => request("GET", "/stats"),
   listPosts: ({ authorId, artworkId }) => {
     const q = new URLSearchParams();

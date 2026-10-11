@@ -454,7 +454,7 @@ const mockApi: Api = {
     return structuredClone(dto);
   },
 
-  listLost: (limit = 50) => delay(lost.slice(0, limit)),
+  listLost: (limit = 50, offset = 0) => delay(lost.slice(offset, offset + limit)),
 
   listPosts({ authorId, artworkId }: { authorId?: number; artworkId?: number }): Promise<PostDto[]> {
     const items = posts
