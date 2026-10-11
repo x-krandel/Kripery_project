@@ -20,19 +20,21 @@ async def lifespan(app: FastAPI):
     await run_in_threadpool(init_db)
     await run_in_threadpool(embeddings.load_model)
     tasks = [asyncio.create_task(auction_engine.run_loop())]
-    if settings.auto_seed:
-        tasks.append(asyncio.create_task(_bootstrap()))
+    # The lost dataset lives in the repo, so every start brings the table in line
+    # with it; AUTO_SEED does that too, before seeding.
+    job = bootstrap.run if settings.auto_seed else bootstrap.sync_lost
+    tasks.append(asyncio.create_task(_bootstrap(job)))
     yield
     for task in tasks:
         task.cancel()
     await asyncio.gather(*tasks, return_exceptions=True)
 
 
-async def _bootstrap() -> None:
+async def _bootstrap(job) -> None:
     try:
-        await run_in_threadpool(bootstrap.run)
-    except Exception:  # a failed seed must not take the API down
-        logging.getLogger("rodowod.bootstrap").exception("AUTO_SEED failed")
+        await run_in_threadpool(job)
+    except Exception:  # a failed seed or sync must not take the API down
+        logging.getLogger("rodowod.bootstrap").exception("%s failed", job.__name__)
 
 
 app = FastAPI(title="Rodowód API", lifespan=lifespan)
