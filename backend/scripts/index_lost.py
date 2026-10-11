@@ -1,6 +1,7 @@
 """data/lost -> lost_artworks.
 
-- lost.csv (title,artist,source_url,image_file): images in data/lost/images,
+- lost.csv (title,artist,source_url,image_file), optional rows for works missing
+  from the JSONL: images in data/lost/images,
   embedded here and copied to MEDIA_DIR;
 - lost_vectors.jsonl (title,artist,source_url,image_url,embedding): precomputed
   clip-ViT-B-32 vectors, loaded as is; image_url stays a remote URL, nothing is downloaded.
