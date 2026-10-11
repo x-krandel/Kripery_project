@@ -40,8 +40,6 @@ export function AddArtwork() {
   const [form, setForm] = useState<Form>(EMPTY);
   const [aiFields, setAiFields] = useState<AiKey[]>([]);
   const [aiNote, setAiNote] = useState<string | null>(null);
-  // Fields the user typed in: the AI button fills only the others.
-  const [edited, setEdited] = useState<Set<keyof Form>>(new Set());
   const [held, setHeld] = useState<ArtworkDetailDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   // The photo on screen right now. "Zmień zdjęcie" can leave an upload or AI request for the previous
@@ -49,16 +47,15 @@ export function AddArtwork() {
   const currentFile = useRef<File | null>(null);
   const currentUploadId = useRef<string | null>(null);
 
-  // Runs only when the user asks for it ("Podpowiedz z AI"), not on every upload.
   const describe = useMutation({
     mutationFn: (uploadId: string) => api.describe({ uploadId }),
     onSuccess: (d, uploadId) => {
       if (uploadId !== currentUploadId.current) return;
-      const filled = d.aiFields.filter((k) => !edited.has(k));
-      setForm((f) => ({ ...f, ...Object.fromEntries(filled.map((k) => [k, d[k]])) }));
-      setAiFields(filled);
-      setAiNote(edited.has("artist") ? null : d.note);
+      setForm((f) => ({ ...f, title: d.title, artist: d.artist, dating: d.dating, technique: d.technique, category: d.category }));
+      setAiFields(d.aiFields);
+      setAiNote(d.note);
     },
+    // AI_UNAVAILABLE: the fields simply stay empty, no error dialog.
   });
 
   const uploadM = useMutation({
@@ -67,6 +64,7 @@ export function AddArtwork() {
       if (f !== currentFile.current) return;
       currentUploadId.current = u.uploadId;
       setUpload(u);
+      describe.mutate(u.uploadId);
     },
     onError: (e, f) => {
       if (f === currentFile.current) setError(e instanceof ApiRequestError ? e.message : "Nie udało się wgrać zdjęcia.");
@@ -103,10 +101,8 @@ export function AddArtwork() {
       currentUploadId.current = null;
       setFile(f);
       setForm(EMPTY);
-      setEdited(new Set());
       setAiFields([]);
       setAiNote(null);
-      describe.reset();
       uploadM.mutate(f);
     },
   });
@@ -114,16 +110,11 @@ export function AddArtwork() {
   const reset = () => {
     currentFile.current = null;
     currentUploadId.current = null;
-    setFile(null); setUpload(null); setForm(EMPTY); setEdited(new Set()); setAiFields([]); setAiNote(null); setHeld(null); setError(null);
-    describe.reset();
+    setFile(null); setUpload(null); setForm(EMPTY); setAiFields([]); setAiNote(null); setHeld(null); setError(null);
   };
 
   const step = held || create.isPending ? 3 : upload ? 2 : 1;
-  const set = (k: keyof Form) => (e: { target: { value: string } }) => {
-    setForm((f) => ({ ...f, [k]: e.target.value }));
-    setEdited((s) => (s.has(k) ? s : new Set(s).add(k)));
-    if (aiFields.includes(k as AiKey)) setAiFields((a) => a.filter((x) => x !== k));
-  };
+  const set = (k: keyof Form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const aiBusy = describe.isPending;
   const ai = (k: AiKey) => aiFields.includes(k);
 
@@ -166,7 +157,7 @@ export function AddArtwork() {
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface text-ink shadow-sm"><Upload size={28} /></span>
             <p className="m-0 font-display text-3xl">{uploadM.isPending ? "Wgrywam zdjęcie…" : "Przeciągnij zdjęcie dzieła tutaj"}</p>
             <p className="m-0 text-[15px] text-ink-soft">albo kliknij, aby wybrać plik · JPG, PNG lub WebP, do 10 MB</p>
-            <p className="m-0 flex items-center gap-2 text-sm text-brass"><Sparkle size={16} /> Po wgraniu AI może podpowiedzieć tytuł, autora, epokę i technikę</p>
+            <p className="m-0 flex items-center gap-2 text-sm text-brass"><Sparkle size={16} /> AI podpowie tytuł, autora, epokę i technikę</p>
           </div>
           {error && <p className="m-0 rounded-xl bg-alert-tint px-4 py-3 text-sm font-semibold text-alert">{error}</p>}
         </div>
@@ -189,22 +180,12 @@ export function AddArtwork() {
           </div>
 
           <form onSubmit={submit} className="flex min-w-0 flex-[1_1_520px] flex-col gap-[22px]" noValidate>
-            <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-brass-tint px-4.5 py-4 text-[15px] leading-normal text-[#4A3B1E]">
-              <Sparkle size={20} className="shrink-0 text-brass" />
-              <span className="min-w-0 flex-[1_1_240px]">{aiBusy ? "AI analizuje zdjęcie…" : describe.isError
-                ? "AI jest teraz niedostępne. Uzupełnij opis ręcznie, wymagany jest tylko tytuł."
-                : aiFields.length
-                  ? `AI wypełniło ${aiFields.length} ${plural(aiFields.length, "pole", "pola", "pól")} na podstawie zdjęcia. Sprawdź je i popraw, jeśli coś się nie zgadza.`
-                  : describe.isSuccess
-                    ? "AI nie podpowiedziało nic nowego. Uzupełnij opis ręcznie, wymagany jest tylko tytuł."
-                    : "Uzupełnij opis dzieła. Wymagany jest tylko tytuł. AI może podpowiedzieć tytuł, autora, epokę i technikę."}</span>
-              {!aiBusy && (
-                <button type="button" onClick={() => describe.mutate(upload.uploadId)}
-                  className="btn-outline min-h-11 shrink-0 px-4 text-sm">
-                  <Sparkle size={16} /> {describe.isSuccess || describe.isError ? "Zapytaj AI ponownie" : "Podpowiedz z AI"}
-                </button>
-              )}
-            </div>
+            <p className="m-0 flex items-start gap-3 rounded-2xl bg-brass-tint px-4.5 py-4 text-[15px] leading-normal text-[#4A3B1E]">
+              <Sparkle size={20} className="mt-0.5 shrink-0 text-brass" />
+              <span>{aiBusy ? "AI analizuje zdjęcie…" : aiFields.length
+                ? `AI wypełniło ${aiFields.length} ${plural(aiFields.length, "pole", "pola", "pól")} na podstawie zdjęcia. Sprawdź je i popraw, jeśli coś się nie zgadza.`
+                : "Uzupełnij opis dzieła. Wymagany jest tylko tytuł."}</span>
+            </p>
 
             <Field id="f-title" label="Tytuł" ai={ai("title")} busy={aiBusy}>
               <input id="f-title" className="field" value={form.title} onChange={set("title")} required />
