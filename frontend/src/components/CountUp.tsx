@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
-/** Counts from 0 to `to` the first time it scrolls into view. */
-export function CountUp({ to, suffix = "", durationMs = 1600 }: { to: number; suffix?: string; durationMs?: number }) {
+const full = new Intl.NumberFormat("pl-PL", { useGrouping: "always" } as Intl.NumberFormatOptions);
+const short = new Intl.NumberFormat("pl-PL", { notation: "compact", maximumSignificantDigits: 3 }); // 10 064 100 → "10,1 mln"
+
+/** Counts from 0 to `to` the first time it scrolls into view. `compact` shortens millions ("10,1 mln"),
+ *  the exact number stays in the tooltip. */
+export function CountUp({ to, suffix = "", durationMs = 1600, compact = false }: {
+  to: number; suffix?: string; durationMs?: number; compact?: boolean;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   // With reduced motion the final number is shown right away, no animation.
   const [reduced] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -26,6 +32,7 @@ export function CountUp({ to, suffix = "", durationMs = 1600 }: { to: number; su
     return () => { obs.disconnect(); cancelAnimationFrame(raf); };
   }, [to, durationMs, reduced]);
 
-  const text = new Intl.NumberFormat("pl-PL", { useGrouping: "always" } as Intl.NumberFormatOptions).format(value);
-  return <span ref={ref}>{text}{suffix}</span>;
+  const text = compact && value >= 1_000_000 ? short.format(value) : full.format(value);
+  const exact = compact && to >= 1_000_000 ? `${full.format(to)}${suffix}` : undefined;
+  return <span ref={ref} title={exact}>{text}{suffix}</span>;
 }
