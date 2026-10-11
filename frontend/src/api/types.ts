@@ -39,6 +39,7 @@ export interface ArtworkSummaryDto {
   ownerId: number;
   verified: boolean; // chainValid && lossCheck.result === "clear"
   auction: AuctionSummaryDto | null; // unfinished auction or null
+  lastPrice: number | null; // latest auction's current or final price; null if never auctioned
 }
 
 export interface LostArtworkMatchDto {

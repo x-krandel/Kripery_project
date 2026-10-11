@@ -210,6 +210,7 @@ function artworkSummary(a: MArtwork): ArtworkSummaryDto {
     imageUrl: a.imageUrl, status: a.status, ownerId: a.ownerId,
     verified: a.lossResult === "clear" && verify(a.id).chainValid,
     auction: active ? auctionSummary(active) : null,
+    lastPrice: [...auctions.values()].filter((x) => x.artworkId === a.id).sort((x, y) => y.id - x.id)[0]?.currentPrice ?? null,
   };
 }
 function artworkDetail(a: MArtwork): ArtworkDetailDto {

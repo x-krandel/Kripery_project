@@ -31,8 +31,21 @@ def open_auctions(db: Session, artwork_ids: list[int]) -> dict[int, Auction]:
     return {a.artwork_id: a for a in rows}
 
 
+def last_prices(db: Session, artwork_ids: list[int]) -> dict[int, int]:
+    """Price of each artwork's latest auction: the current offer, or the final price once it ended."""
+    if not artwork_ids:
+        return {}
+    rows = db.execute(
+        select(Auction.artwork_id, Auction.current_price)
+        .where(Auction.artwork_id.in_(artwork_ids))
+        .order_by(Auction.artwork_id, Auction.created_at.desc())
+        .distinct(Auction.artwork_id)
+    ).all()
+    return {artwork_id: price for artwork_id, price in rows}
+
+
 def artwork_summary(
-    artwork: Artwork, events: list[PassportEvent], auction: Auction | None
+    artwork: Artwork, events: list[PassportEvent], auction: Auction | None, last_price: int | None = None
 ) -> ArtworkSummaryDto:
     chain = verify_chain(events)
     return ArtworkSummaryDto(
@@ -47,6 +60,7 @@ def artwork_summary(
         owner_id=artwork.owner_id,
         verified=chain.chain_valid and artwork.loss_result == "clear",
         auction=AuctionSummaryDto.model_validate(auction) if auction else None,
+        last_price=last_price,
     )
 
 
@@ -54,7 +68,8 @@ def artwork_summaries(db: Session, artworks: list[Artwork]) -> list[ArtworkSumma
     ids = [a.id for a in artworks]
     events = load_events(db, ids)
     auctions = open_auctions(db, ids)
-    return [artwork_summary(a, events[a.id], auctions.get(a.id)) for a in artworks]
+    prices = last_prices(db, ids)
+    return [artwork_summary(a, events[a.id], auctions.get(a.id), prices.get(a.id)) for a in artworks]
 
 
 def artwork_detail(db: Session, artwork: Artwork) -> ArtworkDetailDto:
@@ -79,7 +94,7 @@ def passport(db: Session, artwork: Artwork) -> PassportDto:
     chain = verify_chain(events)
     auction = open_auctions(db, [artwork.id]).get(artwork.id)
     return PassportDto(
-        artwork=artwork_summary(artwork, events, auction),
+        artwork=artwork_summary(artwork, events, auction, last_prices(db, [artwork.id]).get(artwork.id)),
         events=[event_dto(e, chain.valid[e.id]) for e in events],
         chain_valid=chain.chain_valid,
         broken_at_seq=chain.broken_at_seq,

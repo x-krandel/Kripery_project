@@ -55,6 +55,8 @@ class ArtworkSummaryDto(CamelModel):
     owner_id: int
     verified: bool
     auction: AuctionSummaryDto | None
+    # Price of the latest auction (current offer, or the final price once it ended); None if never auctioned.
+    last_price: int | None = None
 
 
 class LostArtworkMatchDto(CamelModel):

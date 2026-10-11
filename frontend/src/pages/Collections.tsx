@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { mediaUrl } from "../api/client";
 import { api } from "../api/endpoints";
 import type { ArtworkSummaryDto, UserDto } from "../api/types";
@@ -19,17 +19,35 @@ function possessive(name: string): string {
   return name + "a";
 }
 
+type CollectionSort = "value-desc" | "value-asc" | "size" | "name";
+const SORTS: Array<[CollectionSort, string]> = [
+  ["value-desc", "Najcenniejsze"],
+  ["value-asc", "Najtańsze"],
+  ["size", "Najwięcej dzieł"],
+  ["name", "Alfabetycznie"],
+];
+
+/** A collection's value: the latest auction price of each work (current offer or final price). */
+const collectionValue = (works: ArtworkSummaryDto[]) => works.reduce((sum, a) => sum + (a.lastPrice ?? 0), 0);
+
 /** B8: list of private collections. */
 export function Collections() {
   const { data: users = [], isLoading: usersLoading } = useQuery({ queryKey: ["users"], queryFn: api.listUsers });
   // One catalog request (shared cache with Home and Catalog), grouped by owner.
   const { data: works, isLoading: worksLoading } = useQuery({ queryKey: ["artworks"], queryFn: () => api.listArtworks() });
   const loading = usersLoading || worksLoading;
+  const [params, setParams] = useSearchParams();
+  const sort = (SORTS.find(([k]) => k === params.get("sort"))?.[0] ?? "value-desc") as CollectionSort;
   const byOwner = new Map<number, ArtworkSummaryDto[]>();
   for (const a of publicWorks(works)) byOwner.set(a.ownerId, [...(byOwner.get(a.ownerId) ?? []), a]);
   const collections = users
-    .map((u) => ({ user: u, works: byOwner.get(u.id) ?? [] }))
-    .filter((c) => c.works.length > 0);
+    .map((u) => ({ user: u, works: byOwner.get(u.id) ?? [], value: collectionValue(byOwner.get(u.id) ?? []) }))
+    .filter((c) => c.works.length > 0)
+    .sort((a, b) =>
+      sort === "value-desc" ? b.value - a.value || b.works.length - a.works.length
+      : sort === "value-asc" ? a.value - b.value || a.works.length - b.works.length
+      : sort === "size" ? b.works.length - a.works.length || b.value - a.value
+      : a.user.name.localeCompare(b.user.name, "pl"));
 
   return (
     <main className="container-page flex flex-col gap-12 pb-28 pt-14">
@@ -41,10 +59,19 @@ export function Collections() {
         </p>
       </div>
 
+      <div className="-mt-4 flex flex-wrap items-center gap-3">
+        <label htmlFor="collection-sort" className="text-sm font-semibold text-ink-soft">Sortuj</label>
+        <select id="collection-sort" value={sort}
+          onChange={(e) => setParams((p) => { p.set("sort", e.target.value); return p; }, { replace: true })}
+          className="min-h-11 rounded-full border border-line-strong bg-surface px-4 text-[15px] font-medium text-ink">
+          {SORTS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+        </select>
+      </div>
+
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
         {loading
           ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-[420px] w-full" />)
-          : collections.map(({ user, works }) => <CollectionCard key={user.id} user={user} works={works} />)}
+          : collections.map(({ user, works, value }) => <CollectionCard key={user.id} user={user} works={works} value={value} />)}
       </div>
 
       {!loading && collections.length === 0 && (
@@ -56,7 +83,7 @@ export function Collections() {
   );
 }
 
-function CollectionCard({ user, works }: { user: UserDto; works: ArtworkSummaryDto[] }) {
+function CollectionCard({ user, works, value }: { user: UserDto; works: ArtworkSummaryDto[]; value: number }) {
   const cover = works.slice(0, 3);
   return (
     <Link to={`/kolekcje/${user.id}`} className="group flex flex-col gap-5 rounded-3xl border border-line bg-surface p-6 text-ink no-underline transition-shadow hover:shadow-[0_24px_48px_-28px_rgba(23,20,15,0.35)]">
@@ -71,7 +98,10 @@ function CollectionCard({ user, works }: { user: UserDto; works: ArtworkSummaryD
         <Avatar id={user.id} name={user.name} size={40} />
         <div className="flex flex-col">
           <span className="font-display text-[28px] leading-none">Kolekcja {possessive(user.name)}</span>
-          <span className="text-sm text-muted">{works.length} {plural(works.length, "dzieło", "dzieła", "dzieł")}</span>
+          <span className="text-sm text-muted">
+            {works.length} {plural(works.length, "dzieło", "dzieła", "dzieł")}
+            {value > 0 && <> · wartość <strong className="font-semibold text-ink">{formatPln(value)}</strong></>}
+          </span>
         </div>
         <ArrowRight className="ml-auto text-accent transition-transform group-hover:translate-x-1" />
       </div>
