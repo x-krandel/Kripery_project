@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ApiRequestError } from "../api/client";
 import { api } from "../api/endpoints";
+import type { ChatMessageDto } from "../api/types";
 import { ArtworkFrame } from "../components/ArtworkFrame";
 import { ArrowLeft, LiveDot, ShieldCheck } from "../components/Icons";
 import { useToast } from "../hooks/useToast";
@@ -27,7 +28,7 @@ export function AuctionLive() {
   const artQ = useQuery({ queryKey: ["artwork", id], queryFn: () => api.getArtwork(id) });
   const art = artQ.data;
   const auctionId = art?.auction?.id ?? null;
-  const { auction, ended, connected, resync } = useAuctionSocket(auctionId);
+  const { auction, ended, connected, resync, chat } = useAuctionSocket(auctionId);
 
   useEffect(() => {
     if (ended) void qc.invalidateQueries();
@@ -157,6 +158,8 @@ export function AuctionLive() {
                 {auction && auction.bids.length === 0 && <li className="py-3 text-sm text-muted">Jeszcze nikt nie licytował. Bądź pierwszy!</li>}
               </ul>
             </div>
+
+            {auctionId != null && <AuctionChat auctionId={auctionId} messages={chat} userId={userId} artworkId={id} />}
           </section>
         </div>
 
@@ -186,6 +189,68 @@ export function AuctionLive() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Live chat of the auction room: history comes with the WebSocket snapshot, new lines as "chat" messages. */
+function AuctionChat({ auctionId, messages, userId, artworkId }: {
+  auctionId: number; messages: ChatMessageDto[]; userId: number | null; artworkId: number;
+}) {
+  const toast = useToast();
+  const now = useNow();
+  const [text, setText] = useState("");
+  const listRef = useRef<HTMLOListElement>(null);
+  const send = useMutation({
+    mutationFn: (t: string) => api.postChatMessage(auctionId, t),
+    onSuccess: () => setText(""),
+    onError: (e) => toast(e instanceof ApiRequestError ? e.message : "Nie udało się wysłać wiadomości.", "error"),
+  });
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (el) el.scrollTop = el.scrollHeight; // follow the newest message
+  }, [messages.length]);
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const t = text.trim();
+    if (t && !send.isPending) send.mutate(t);
+  };
+
+  return (
+    <div className="flex flex-col gap-3 rounded-[18px] border border-line bg-surface p-4 lg:rounded-3xl lg:px-7 lg:py-5">
+      <span className="text-xs font-bold uppercase tracking-[0.08em] text-muted">Czat licytacji</span>
+      <ol ref={listRef} aria-live="polite" className="m-0 flex h-52 list-none flex-col gap-3 overflow-y-auto p-0 lg:h-64">
+        {messages.length === 0 && <li className="m-auto text-center text-sm text-muted">Nikt jeszcze nie pisał. Przywitaj się z licytującymi.</li>}
+        {messages.map((m) => (
+          <li key={m.id} className="flex items-start gap-2.5">
+            <Avatar id={m.user.id} name={m.user.name} size={26} />
+            <div className="flex min-w-0 flex-col">
+              <span className="text-[13px]">
+                <strong className="font-semibold">{m.user.id === userId ? "Ty" : m.user.name}</strong>
+                <span className="text-muted"> · {timeAgo(m.createdAt, now)}</span>
+              </span>
+              <span className="break-words text-[15px] leading-snug">{m.text}</span>
+            </div>
+          </li>
+        ))}
+      </ol>
+      {userId == null ? (
+        <Link to={`/logowanie?next=${encodeURIComponent(`/dziela/${artworkId}/aukcja`)}`} className="text-sm font-semibold text-accent">
+          Zaloguj się, aby pisać na czacie
+        </Link>
+      ) : (
+        <form onSubmit={submit} className="flex gap-2">
+          <label htmlFor="chat-input" className="sr-only">Wiadomość</label>
+          <input id="chat-input" className="field min-h-11" maxLength={500} autoComplete="off" placeholder="Napisz wiadomość…"
+            value={text} onChange={(e) => setText(e.target.value)} />
+          <button type="submit" disabled={!text.trim() || send.isPending}
+            className="min-h-11 shrink-0 rounded-xl bg-ink px-4 text-sm font-bold text-ground disabled:opacity-40">
+            Wyślij
+          </button>
+        </form>
+      )}
     </div>
   );
 }

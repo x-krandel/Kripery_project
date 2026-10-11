@@ -53,5 +53,8 @@ npx openapi-typescript http://localhost:8000/openapi.json -o src/api/schema.d.ts
 | GET | `/api/posts?authorId=&artworkId=` | – | `200 PostDto[]`, newest first; posts about held works only for their author |
 | POST | `/api/posts/offline-auction` | `{artworkId, startsAt, place, minPrice, body}` | `201 PostDto`: invitation to an in-person auction, owner only |
 | DELETE | `/api/posts/{id}` | – | `204`, author only |
+| POST | `/api/auctions/{id}/messages` | `{text}` (1–500 characters) | `201 ChatMessageDto`, login required; broadcast to the room as WS `{type: "chat", message}` |
+
+The WS `snapshot` message also carries `chat`: the latest 50 messages, oldest first.
 
 `ArtworkSummaryDto.lastPrice`: price of the latest auction (current offer, or the final price once it ended), `null` if the work was never auctioned. New error codes: `INVALID_DATE` (400, offline auction in the past), `NOT_AUTHOR` (403, deleting someone else's post).
